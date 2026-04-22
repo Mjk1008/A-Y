@@ -1,8 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-export const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+const API_KEY = process.env.ANTHROPIC_API_KEY;
+export const USE_MOCK = !API_KEY || API_KEY.startsWith("TODO") || API_KEY === "mock";
+
+export const anthropic = USE_MOCK ? null : new Anthropic({ apiKey: API_KEY });
 
 export const MODEL = "claude-sonnet-4-5";
 
@@ -88,7 +89,63 @@ JSON زیر را تکمیل کن (دقیقاً همین ساختار، بدون 
 }`;
 }
 
+function mockAnalysis(p: ProfileInput): AnalysisResult {
+  const job = p.job_title || "حرفه‌ای";
+  return {
+    analysis_summary: `${p.full_name} عزیز، با ${p.years_experience} سال تجربه در حوزه ${p.industry}، در نقطه عالی‌ای هستی که از AI به عنوان اهرم استفاده کنی. مهارت‌هات (${p.skills.slice(0, 3).join("، ")}) با ابزارهای هوشمند ترکیب بشه، بهره‌وریت چند برابر می‌شه.`,
+    risk_level: p.years_experience >= 5 ? "low" : "medium",
+    risk_explanation:
+      p.years_experience >= 5
+        ? "تجربه و تخصصت سرمایه‌ای هست که AI نمی‌تونه جایگزینش کنه. فقط کافیه ابزار درست رو یاد بگیری."
+        : "صنعتت در حال تغییره. اگه همین الان ابزارهای درست رو یاد بگیری، جایگزینت کن‌ها جلوتر از خودت نمی‌رن.",
+    top_tools: [
+      {
+        name: "ChatGPT / Claude",
+        category: "Writing & Thinking",
+        why_relevant: `برای هر ${job} که با نوشتن، ایمیل، تحلیل، یا تصمیم‌گیری سروکار داره، این ابزارها یه دستیار ۲۴/۷ هستن.`,
+        how_to_use_in_your_job: "روزانه برای draft زدن، خلاصه کردن جلسات، برین‌استورم و چک کردن ایده‌ها ازش استفاده کن. پروتوکول «هر کار رو قبل از شروع با AI یه بار مطرح کن» رو اجرا کن.",
+        example_scenario: `فرض کن باید یه پیشنهاد به مدیرت بدی — به جای ۲ ساعت نوشتن، به AI context رو بده، ۳ تا نسخه draft بگیر، بهترین رو انتخاب کن، در ۲۰ دقیقه تمومه.`,
+        learning_time: "۲-۳ ساعت",
+        difficulty: "beginner",
+        priority: 1,
+        url: "https://claude.ai",
+      },
+      {
+        name: "Notion AI / Mem",
+        category: "Knowledge Management",
+        why_relevant: "هر کسی که با اطلاعات زیاد کار می‌کنه، نیاز به یه «مغز دوم» داره که بتونه سریع چیزا رو پیدا و تحلیل کنه.",
+        how_to_use_in_your_job: "همه یادداشت‌ها، جلسات، و پروژه‌هات رو توش بذار. بعد به جای سرچ دستی، از AI بپرس «هفته پیش چی درباره X تصمیم گرفتیم؟»",
+        example_scenario: "شنبه صبح به جای مرور ۱۰ تا فایل، یه سؤال از AI بپرس و خلاصه هفته رو با تمام decision های کلیدی بگیر.",
+        learning_time: "۱ هفته",
+        difficulty: "intermediate",
+        priority: 2,
+        url: "https://notion.so",
+      },
+      {
+        name: "Perplexity",
+        category: "Research",
+        why_relevant: "گوگل برای سرچ سطحیه. Perplexity برای پیدا کردن سریع جواب‌های تحقیقی با سورس معتبر عالیه.",
+        how_to_use_in_your_job: "هر جا سؤال تخصصی داری — از trend صنعت تا best practice — به جای ۲۰ تا تب، ۳۰ ثانیه با Perplexity.",
+        example_scenario: "می‌خوای بفهمی رقیبت چه استراتژی داره. به جای ۲ ساعت سرچ، ۵ دقیقه با Perplexity تحلیل با سورس می‌گیری.",
+        learning_time: "۳۰ دقیقه",
+        difficulty: "beginner",
+        priority: 3,
+        url: "https://perplexity.ai",
+      },
+    ],
+    roadmap: [
+      { week: "هفته ۱", goals: ["حساب Claude یا ChatGPT بساز و روزانه ۳۰ دقیقه باش", "۵ کار روتینت رو لیست کن که می‌شه با AI سریع‌تر کرد"] },
+      { week: "هفته ۲", goals: ["Notion یا Mem رو راه بنداز و هفته پیشت رو واردش کن", "اولین ایمیل کاری‌ت رو با کمک AI بنویس"] },
+      { week: "هفته ۳", goals: ["Perplexity رو برای تحقیق‌های کاری استفاده کن", "یه پرامپت template شخصی بساز برای تکرارپذیرترین تسک‌هات"] },
+      { week: "هفته ۴", goals: ["کار هفتگی‌ت رو اندازه‌گیری کن: چقدر سریع‌تر شدی؟", "یه ابزار تخصصی حوزه‌ات رو پیدا و امتحان کن"] },
+    ],
+    leverage_idea: `به جای اینکه فقط مصرف‌کننده AI باشی، یه workflow شخصی طراحی کن که مخصوص ${job} توی صنعت ${p.industry} باشه — و اونو به تیم/شرکتت آموزش بده. کسی که «چطور AI رو در این شغل استفاده کنیم» رو بلده، ارزشش ۱۰ برابر می‌شه.`,
+  };
+}
+
 export async function analyzeProfile(p: ProfileInput): Promise<AnalysisResult> {
+  if (USE_MOCK || !anthropic) return mockAnalysis(p);
+
   const msg = await anthropic.messages.create({
     model: MODEL,
     max_tokens: p.plan === "pro" ? 4096 : 2048,
