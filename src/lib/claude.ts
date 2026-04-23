@@ -1,11 +1,9 @@
-import Anthropic from "@anthropic-ai/sdk";
+// AI analysis using Metis (OpenAI-compatible API)
 
-const API_KEY = process.env.ANTHROPIC_API_KEY;
-export const USE_MOCK = !API_KEY || API_KEY.startsWith("TODO") || API_KEY === "mock";
-
-export const anthropic = USE_MOCK ? null : new Anthropic({ apiKey: API_KEY });
-
-export const MODEL = "claude-sonnet-4-5";
+const METIS_BASE = process.env.METIS_BASE_URL || "https://api.metisai.ir/openai/v1";
+const METIS_KEY = process.env.METIS_API_KEY || "";
+const USE_MOCK = !METIS_KEY || METIS_KEY === "mock";
+const MODEL = "gpt-4o-mini";
 
 export type ProfileInput = {
   full_name: string;
@@ -103,19 +101,19 @@ function mockAnalysis(p: ProfileInput): AnalysisResult {
         name: "ChatGPT / Claude",
         category: "Writing & Thinking",
         why_relevant: `برای هر ${job} که با نوشتن، ایمیل، تحلیل، یا تصمیم‌گیری سروکار داره، این ابزارها یه دستیار ۲۴/۷ هستن.`,
-        how_to_use_in_your_job: "روزانه برای draft زدن، خلاصه کردن جلسات، برین‌استورم و چک کردن ایده‌ها ازش استفاده کن. پروتوکول «هر کار رو قبل از شروع با AI یه بار مطرح کن» رو اجرا کن.",
-        example_scenario: `فرض کن باید یه پیشنهاد به مدیرت بدی — به جای ۲ ساعت نوشتن، به AI context رو بده، ۳ تا نسخه draft بگیر، بهترین رو انتخاب کن، در ۲۰ دقیقه تمومه.`,
+        how_to_use_in_your_job: "روزانه برای draft زدن، خلاصه کردن جلسات، برین‌استورم و چک کردن ایده‌ها ازش استفاده کن.",
+        example_scenario: `فرض کن باید یه پیشنهاد به مدیرت بدی — به جای ۲ ساعت نوشتن، به AI context رو بده، ۳ تا نسخه draft بگیر، در ۲۰ دقیقه تمومه.`,
         learning_time: "۲-۳ ساعت",
         difficulty: "beginner",
         priority: 1,
         url: "https://claude.ai",
       },
       {
-        name: "Notion AI / Mem",
+        name: "Notion AI",
         category: "Knowledge Management",
-        why_relevant: "هر کسی که با اطلاعات زیاد کار می‌کنه، نیاز به یه «مغز دوم» داره که بتونه سریع چیزا رو پیدا و تحلیل کنه.",
-        how_to_use_in_your_job: "همه یادداشت‌ها، جلسات، و پروژه‌هات رو توش بذار. بعد به جای سرچ دستی، از AI بپرس «هفته پیش چی درباره X تصمیم گرفتیم؟»",
-        example_scenario: "شنبه صبح به جای مرور ۱۰ تا فایل، یه سؤال از AI بپرس و خلاصه هفته رو با تمام decision های کلیدی بگیر.",
+        why_relevant: "هر کسی که با اطلاعات زیاد کار می‌کنه، نیاز به یه «مغز دوم» داره.",
+        how_to_use_in_your_job: "همه یادداشت‌ها، جلسات، و پروژه‌هات رو توش بذار. بعد از AI بپرس «هفته پیش چی درباره X تصمیم گرفتیم؟»",
+        example_scenario: "شنبه صبح به جای مرور ۱۰ تا فایل، یه سؤال از AI بپرس و خلاصه هفته رو بگیر.",
         learning_time: "۱ هفته",
         difficulty: "intermediate",
         priority: 2,
@@ -124,9 +122,9 @@ function mockAnalysis(p: ProfileInput): AnalysisResult {
       {
         name: "Perplexity",
         category: "Research",
-        why_relevant: "گوگل برای سرچ سطحیه. Perplexity برای پیدا کردن سریع جواب‌های تحقیقی با سورس معتبر عالیه.",
-        how_to_use_in_your_job: "هر جا سؤال تخصصی داری — از trend صنعت تا best practice — به جای ۲۰ تا تب، ۳۰ ثانیه با Perplexity.",
-        example_scenario: "می‌خوای بفهمی رقیبت چه استراتژی داره. به جای ۲ ساعت سرچ، ۵ دقیقه با Perplexity تحلیل با سورس می‌گیری.",
+        why_relevant: "گوگل برای سرچ سطحیه. Perplexity برای جواب‌های تحقیقی با سورس معتبر عالیه.",
+        how_to_use_in_your_job: "هر جا سؤال تخصصی داری، به جای ۲۰ تا تب، ۳۰ ثانیه با Perplexity.",
+        example_scenario: "می‌خوای بفهمی رقیبت چه استراتژی داره. ۵ دقیقه با Perplexity تحلیل با سورس می‌گیری.",
         learning_time: "۳۰ دقیقه",
         difficulty: "beginner",
         priority: 3,
@@ -135,29 +133,52 @@ function mockAnalysis(p: ProfileInput): AnalysisResult {
     ],
     roadmap: [
       { week: "هفته ۱", goals: ["حساب Claude یا ChatGPT بساز و روزانه ۳۰ دقیقه باش", "۵ کار روتینت رو لیست کن که می‌شه با AI سریع‌تر کرد"] },
-      { week: "هفته ۲", goals: ["Notion یا Mem رو راه بنداز و هفته پیشت رو واردش کن", "اولین ایمیل کاری‌ت رو با کمک AI بنویس"] },
-      { week: "هفته ۳", goals: ["Perplexity رو برای تحقیق‌های کاری استفاده کن", "یه پرامپت template شخصی بساز برای تکرارپذیرترین تسک‌هات"] },
+      { week: "هفته ۲", goals: ["Notion رو راه بنداز و هفته پیشت رو واردش کن", "اولین ایمیل کاری‌ت رو با کمک AI بنویس"] },
+      { week: "هفته ۳", goals: ["Perplexity رو برای تحقیق‌های کاری استفاده کن", "یه پرامپت template شخصی بساز"] },
       { week: "هفته ۴", goals: ["کار هفتگی‌ت رو اندازه‌گیری کن: چقدر سریع‌تر شدی؟", "یه ابزار تخصصی حوزه‌ات رو پیدا و امتحان کن"] },
     ],
-    leverage_idea: `به جای اینکه فقط مصرف‌کننده AI باشی، یه workflow شخصی طراحی کن که مخصوص ${job} توی صنعت ${p.industry} باشه — و اونو به تیم/شرکتت آموزش بده. کسی که «چطور AI رو در این شغل استفاده کنیم» رو بلده، ارزشش ۱۰ برابر می‌شه.`,
+    leverage_idea: `به جای اینکه فقط مصرف‌کننده AI باشی، یه workflow شخصی طراحی کن که مخصوص ${job} توی صنعت ${p.industry} باشه — و اونو به تیم/شرکتت آموزش بده.`,
   };
 }
 
-export async function analyzeProfile(p: ProfileInput): Promise<AnalysisResult> {
-  if (USE_MOCK || !anthropic) return mockAnalysis(p);
+async function callMetis(p: ProfileInput): Promise<AnalysisResult> {
+  const maxTokens = p.plan === "pro" ? 4096 : 2048;
 
-  const msg = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: p.plan === "pro" ? 4096 : 2048,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: buildUserPrompt(p) }],
+  const res = await fetch(`${METIS_BASE}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${METIS_KEY}`,
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: maxTokens,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: buildUserPrompt(p) },
+      ],
+    }),
   });
 
-  const textBlock = msg.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") throw new Error("No response");
-  const raw = textBlock.text.trim();
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Metis API error ${res.status}: ${err}`);
+  }
+
+  const data = await res.json();
+  const raw: string = data.choices?.[0]?.message?.content ?? "";
   const jsonStart = raw.indexOf("{");
   const jsonEnd = raw.lastIndexOf("}");
-  const json = raw.slice(jsonStart, jsonEnd + 1);
-  return JSON.parse(json) as AnalysisResult;
+  if (jsonStart === -1 || jsonEnd === -1) throw new Error("No JSON in Metis response");
+  return JSON.parse(raw.slice(jsonStart, jsonEnd + 1)) as AnalysisResult;
+}
+
+export async function analyzeProfile(p: ProfileInput): Promise<AnalysisResult> {
+  if (USE_MOCK) return mockAnalysis(p);
+  try {
+    return await callMetis(p);
+  } catch (e) {
+    console.error("Metis call failed, falling back to mock:", e);
+    return mockAnalysis(p);
+  }
 }
