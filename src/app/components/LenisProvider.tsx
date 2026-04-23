@@ -60,7 +60,6 @@ export default function LenisProvider() {
          this, mobile momentum bypasses Lenis and we're back to square
          one. The multiplier controls inertia decay after release.     */
       syncTouch: true,
-      touchInertiaMultiplier: 35,
 
       /* Allow the native gesture to still fire for anchor clicks etc. */
       autoResize: true,
