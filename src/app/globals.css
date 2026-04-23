@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Lenis smooth scroll — required baseline ─────────────────────
+   Lenis adds these classes to <html> when active. The rules below are
+   the canonical setup from the Lenis docs — they let Lenis control the
+   scroll while keeping nested scrollable regions (tagged with the
+   [data-lenis-prevent] attribute) working correctly.                  */
+html.lenis, html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
 :root {
   color-scheme: dark;
   --bg: #0b0b14;
@@ -87,6 +108,37 @@ h1, h2, h3 {
     active:scale-[0.98];
   }
 
+  /* ── Luxury buttons ───────────────────────────── */
+  .btn-lux {
+    @apply inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-ink-950 transition-all duration-200
+    active:scale-[0.98];
+    background: linear-gradient(135deg, #6ee7b7 0%, #34d399 55%, #10b981 100%);
+    box-shadow:
+      0 10px 30px -10px rgba(16,185,129,0.55),
+      inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .btn-lux:hover {
+    box-shadow:
+      0 14px 40px -10px rgba(16,185,129,0.75),
+      inset 0 1px 0 rgba(255,255,255,0.35);
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost-lux {
+    @apply inline-flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-medium transition-all duration-200
+    active:scale-[0.98];
+    color: #d4d4ea;
+    border-color: rgba(52,211,153,0.25);
+    background: linear-gradient(180deg, rgba(52,211,153,0.06) 0%, rgba(21,21,31,0.35) 100%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .btn-ghost-lux:hover {
+    border-color: rgba(52,211,153,0.5);
+    background: linear-gradient(180deg, rgba(52,211,153,0.12) 0%, rgba(21,21,31,0.45) 100%);
+    color: #ecfeff;
+  }
+
   /* ── Cards ─────────────────────────────────────── */
   .card {
     @apply rounded-2xl border border-white/[0.06] bg-ink-800/40 p-6;
@@ -137,6 +189,14 @@ h1, h2, h3 {
   background: linear-gradient(120deg, #c4b5fd 0%, #a78bfa 55%, #7c3aed 100%);
   background-size: 200% 200%;
   animation: gradientPan 8s ease infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.text-gradient-lux {
+  background: linear-gradient(120deg, #6ee7b7 0%, #34d399 40%, #fcd34d 100%);
+  background-size: 220% 220%;
+  animation: gradientPan 9s ease infinite;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

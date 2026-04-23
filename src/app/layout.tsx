@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import LenisProvider from "./components/LenisProvider";
 
 export const metadata: Metadata = {
   title: "A-Y | ای‌وای — استاد AI شو، نه قربانی",
@@ -18,10 +19,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link
           rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css"
+          href="https://cdn.fontcdn.ir/Font/Persian/Peyda/Peyda.css"
         />
       </head>
-      <body className="min-h-screen" style={{ fontFamily: "'Vazirmatn', system-ui, sans-serif" }}>
+      <body className="min-h-screen" style={{ fontFamily: "'Peyda', 'Vazirmatn', system-ui, sans-serif" }}>
+        <LenisProvider />
         {children}
       </body>
     </html>

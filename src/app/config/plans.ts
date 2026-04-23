@@ -104,7 +104,7 @@ export const PLANS: Plan[] = [
     id: "pro",
     displayName: "پرو",
     tagline: "برای کسایی که جدی‌ان",
-    priceToman: 198_000,
+    priceToman: 298_000,
     billingCycle: "monthly",
     recommended: true,
     accent: "brand",
@@ -130,7 +130,7 @@ export const PLANS: Plan[] = [
     id: "max",
     displayName: "مکس",
     tagline: "همه‌چیز — با تعهد یک‌ساله",
-    priceToman: 1_680_000,
+    priceToman: 1_980_000,
     billingCycle: "yearly",
     monthlyEquivalentToman: 140_000,  /* = 1,680,000 / 12 */
     accent: "gold",

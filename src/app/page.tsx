@@ -28,7 +28,8 @@ import {
 export default function Home() {
   return (
     <>
-      {/* Global 3D video — fixed behind ALL sections, stays centered on scroll */}
+      {/* Global scroll-locked video backdrop — fixed to the viewport so
+          it stays centered behind EVERY section as the user scrolls.    */}
       <ScrollVideoBackground />
 
       <main className="relative" style={{ zIndex: 10 }}>
@@ -54,14 +55,16 @@ function Nav() {
     <nav className="fixed top-3 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2">
       <div className="glass-strong flex items-center justify-between gap-3 px-3 py-2">
         <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="/ay-logo.png"
-            alt="A-Y"
-            width={30}
-            height={30}
-            className="h-7 w-auto"
-            priority
-          />
+          <span className="relative inline-flex overflow-hidden rounded-xl border border-emerald-400/15 bg-gradient-to-br from-emerald-500/10 to-transparent p-0.5">
+            <Image
+              src="/ay-logo.png"
+              alt="A-Y"
+              width={30}
+              height={30}
+              className="h-6 w-auto rounded-lg"
+              priority
+            />
+          </span>
           <span className="text-[11px] uppercase tracking-[0.35em] text-ink-300">A · Y</span>
         </Link>
         <div className="flex items-center gap-1.5">
@@ -97,7 +100,7 @@ function StatTicker() {
   ];
   const dup = [...stats, ...stats];
   return (
-    <section className="relative overflow-hidden border-y border-white/[0.06] bg-ink-900/35 py-5 backdrop-blur-md">
+    <section className="relative overflow-hidden border-y border-white/[0.06] bg-ink-900/15 py-5 backdrop-blur-sm">
       <div className="relative" style={{ zIndex: 0 }} dir="ltr">
         <div className="marquee-track">
           {dup.map((s, i) => (
@@ -601,10 +604,12 @@ function FinalCta() {
 ═══════════════════════════════════════════════════════ */
 function Footer() {
   return (
-    <footer className="relative border-t border-white/[0.06] bg-ink-950/60 px-6 py-10 backdrop-blur-md">
+    <footer className="relative border-t border-white/[0.06] bg-ink-950/30 px-6 py-10 backdrop-blur-sm">
       <div className="mx-auto flex max-w-md flex-col items-center gap-4 text-center">
         <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/ay-logo.png" alt="A-Y" width={28} height={28} className="h-7 w-auto" />
+          <span className="relative inline-flex overflow-hidden rounded-xl border border-emerald-400/15 bg-gradient-to-br from-emerald-500/10 to-transparent p-0.5">
+            <Image src="/ay-logo.png" alt="A-Y" width={28} height={28} className="h-6 w-auto rounded-lg" />
+          </span>
           <span className="text-[11px] uppercase tracking-[0.35em] text-ink-300">A · Y</span>
         </Link>
         <p className="text-[11px] text-ink-400">
