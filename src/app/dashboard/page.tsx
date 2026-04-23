@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/session";
+import { pool } from "@/lib/db";
 import type { AnalysisResult } from "@/lib/claude";
 import {
   Sparkles, Target, Zap, TrendingUp, Shield, ArrowLeft,
@@ -12,29 +13,25 @@ type Analysis = {
   id: string;
   result_json: AnalysisResult;
   created_at: string;
-  plan_type: string;
 };
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await getSession();
+  if (!session) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
+  const profileRes = await pool.query(
+    "SELECT * FROM profiles WHERE user_id=$1",
+    [session.id]
+  );
+  if (profileRes.rows.length === 0) redirect("/onboarding");
 
-  if (!profile) redirect("/onboarding");
+  const profile = profileRes.rows[0];
 
-  const { data: latest } = await supabase
-    .from("analyses")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<Analysis>();
+  const latestRes = await pool.query(
+    "SELECT * FROM analyses WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1",
+    [session.id]
+  );
+  const latest: Analysis | null = latestRes.rows[0] ?? null;
 
   if (!latest) {
     return (
@@ -50,7 +47,7 @@ export default async function DashboardPage() {
   }
 
   const r = latest.result_json;
-  const isPro = profile.plan_type === "pro";
+  const isPro = session.plan === "pro";
 
   return (
     <main className="min-h-screen pb-16">

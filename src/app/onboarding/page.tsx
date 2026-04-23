@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, ArrowRight, Loader2, Upload, Check, X, Sparkles } from "lucide-react";
 
 const INDUSTRIES = [
@@ -45,18 +44,8 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("باید وارد شوی");
-
       let resumeParsedText: string | undefined;
       if (resumeFile) {
-        const path = `${user.id}/${Date.now()}-${resumeFile.name}`;
-        const { error: upErr } = await supabase.storage
-          .from("resumes")
-          .upload(path, resumeFile, { upsert: false });
-        if (upErr) throw upErr;
-
         const fd = new FormData();
         fd.append("file", resumeFile);
         const parseRes = await fetch("/api/parse-resume", { method: "POST", body: fd });
@@ -64,28 +53,26 @@ export default function OnboardingPage() {
           const j = await parseRes.json();
           resumeParsedText = j.text;
         }
-        await supabase.from("resumes").insert({
-          user_id: user.id,
-          file_path: path,
-          file_name: resumeFile.name,
-          parsed_text: resumeParsedText ?? null,
-        });
       }
 
-      const profileData = {
-        user_id: user.id,
-        full_name: form.full_name,
-        age: form.age ? parseInt(form.age) : null,
-        job_title: form.job_title,
-        industry: form.industry,
-        years_experience: parseInt(form.years_experience || "0"),
-        skills: form.skills,
-        bio: form.bio || null,
-      };
-      const { error: profErr } = await supabase
-        .from("profiles")
-        .upsert(profileData, { onConflict: "user_id" });
-      if (profErr) throw profErr;
+      const profileRes = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: form.full_name,
+          age: form.age ? parseInt(form.age) : null,
+          job_title: form.job_title,
+          industry: form.industry,
+          years_experience: parseInt(form.years_experience || "0"),
+          skills: form.skills,
+          bio: form.bio || null,
+          resume_parsed_text: resumeParsedText ?? null,
+        }),
+      });
+      if (!profileRes.ok) {
+        const j = await profileRes.json().catch(() => ({}));
+        throw new Error(j.error || "خطا در ذخیره پروفایل");
+      }
 
       const analyzeRes = await fetch("/api/analyze", { method: "POST" });
       if (!analyzeRes.ok) {
@@ -300,7 +287,7 @@ export default function OnboardingPage() {
                   <div>
                     <p className="text-sm font-medium">آماده تحلیل!</p>
                     <p className="text-xs text-ink-300">
-                      Claude 4.5 پروفایلت رو می‌خونه و تا ۳۰ ثانیه دیگه نتایج رو می‌بینی.
+                      هوش مصنوعی پروفایلت رو می‌خونه و تا ۳۰ ثانیه دیگه نتایج رو می‌بینی.
                     </p>
                   </div>
                 </div>

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Loader2, Sparkles, X } from "lucide-react";
 
 type Profile = {
@@ -44,25 +43,23 @@ export function ProfileClient({ initial }: { initial: Profile }) {
     setError(null);
     setSuccess(false);
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("unauth");
-      const { error } = await supabase
-        .from("profiles")
-        .upsert(
-          {
-            user_id: user.id,
-            full_name: form.full_name,
-            age: form.age ? parseInt(form.age) : null,
-            job_title: form.job_title,
-            industry: form.industry,
-            years_experience: parseInt(form.years_experience || "0"),
-            skills: form.skills,
-            bio: form.bio || null,
-          },
-          { onConflict: "user_id" }
-        );
-      if (error) throw error;
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: form.full_name,
+          age: form.age ? parseInt(form.age) : null,
+          job_title: form.job_title,
+          industry: form.industry,
+          years_experience: parseInt(form.years_experience || "0"),
+          skills: form.skills,
+          bio: form.bio || null,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "save_failed");
+      }
       setSuccess(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "error");

@@ -1,20 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/session";
+import { pool } from "@/lib/db";
 import { ProfileClient } from "./ProfileClient";
 import { ArrowRight } from "lucide-react";
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await getSession();
+  if (!session) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
-  if (!profile) redirect("/onboarding");
+  const profileRes = await pool.query(
+    "SELECT * FROM profiles WHERE user_id=$1",
+    [session.id]
+  );
+  if (profileRes.rows.length === 0) redirect("/onboarding");
+
+  const profile = profileRes.rows[0];
 
   return (
     <main className="min-h-screen px-6 py-10">
