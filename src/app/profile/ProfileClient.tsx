@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Sparkles, X } from "lucide-react";
+import { Loader2, Sparkles, X, Check } from "lucide-react";
 
 type Profile = {
   full_name: string;
@@ -58,11 +58,11 @@ export function ProfileClient({ initial }: { initial: Profile }) {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || "save_failed");
+        throw new Error(j.error || "خطا در ذخیره");
       }
       setSuccess(true);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "error");
+      setError(e instanceof Error ? e.message : "خطا");
     } finally {
       setLoading(false);
     }
@@ -72,95 +72,189 @@ export function ProfileClient({ initial }: { initial: Profile }) {
     setAnalyzing(true);
     setError(null);
     try {
-      await save();
+      const saveRes = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: form.full_name,
+          age: form.age ? parseInt(form.age) : null,
+          job_title: form.job_title,
+          industry: form.industry,
+          years_experience: parseInt(form.years_experience || "0"),
+          skills: form.skills,
+          bio: form.bio || null,
+        }),
+      });
+      if (!saveRes.ok) throw new Error("خطا در ذخیره پروفایل");
+
       const r = await fetch("/api/analyze", { method: "POST" });
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
-        throw new Error(j.error || "analyze_failed");
+        throw new Error(j.error || "خطا در تحلیل");
       }
       router.push("/dashboard");
       router.refresh();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "error");
+      setError(e instanceof Error ? e.message : "خطا");
     } finally {
       setAnalyzing(false);
     }
   }
 
   return (
-    <div className="card">
-      <h1 className="mb-2 text-2xl font-bold">ویرایش پروفایل</h1>
-      <p className="mb-6 text-sm text-ink-300">بعد از ویرایش، برای نتیجه تازه «تحلیل مجدد» بزن.</p>
+    <div className="space-y-6">
+      {/* Fields */}
+      <div>
+        <label className="mb-1.5 block text-xs font-medium text-ink-400">نام</label>
+        <input
+          value={form.full_name}
+          onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+          className="input-field"
+        />
+      </div>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium">نام</label>
-          <input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="input-field" />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">سن</label>
-            <input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} className="input-field" dir="ltr" />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">سال تجربه</label>
-            <input type="number" value={form.years_experience} onChange={(e) => setForm({ ...form, years_experience: e.target.value })} className="input-field" dir="ltr" />
-          </div>
+          <label className="mb-1.5 block text-xs font-medium text-ink-400">سن</label>
+          <input
+            type="number"
+            value={form.age}
+            onChange={(e) => setForm({ ...form, age: e.target.value })}
+            className="input-field"
+            dir="ltr"
+          />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium">عنوان شغلی</label>
-          <input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} className="input-field" />
+          <label className="mb-1.5 block text-xs font-medium text-ink-400">
+            سال‌های تجربه
+          </label>
+          <input
+            type="number"
+            value={form.years_experience}
+            onChange={(e) =>
+              setForm({ ...form, years_experience: e.target.value })
+            }
+            className="input-field"
+            dir="ltr"
+          />
         </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-medium">صنعت</label>
-          <input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="input-field" />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-medium">مهارت‌ها</label>
-          <div className="flex gap-2">
-            <input
-              value={form.skillInput}
-              onChange={(e) => setForm({ ...form, skillInput: e.target.value })}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSkill(); } }}
-              className="input-field flex-1"
-              placeholder="بنویس و Enter بزن"
-            />
-            <button onClick={addSkill} className="btn-ghost !px-4">افزودن</button>
-          </div>
-          {form.skills.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {form.skills.map((s) => (
-                <span key={s} className="chip">
-                  {s}
-                  <button onClick={() => setForm((f) => ({ ...f, skills: f.skills.filter((x) => x !== s) }))}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-medium">درباره</label>
-          <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} className="input-field min-h-[100px]" />
-        </div>
+      </div>
 
-        {error && <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</div>}
-        {success && <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-300">ذخیره شد ✓</div>}
+      <div>
+        <label className="mb-1.5 block text-xs font-medium text-ink-400">
+          عنوان شغلی
+        </label>
+        <input
+          value={form.job_title}
+          onChange={(e) => setForm({ ...form, job_title: e.target.value })}
+          className="input-field"
+        />
+      </div>
 
-        <div className="flex items-center gap-3 pt-4">
-          <button onClick={save} disabled={loading || analyzing} className="btn-ghost">
+      <div>
+        <label className="mb-1.5 block text-xs font-medium text-ink-400">صنعت</label>
+        <input
+          value={form.industry}
+          onChange={(e) => setForm({ ...form, industry: e.target.value })}
+          className="input-field"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1.5 flex items-center justify-between text-xs font-medium text-ink-400">
+          <span>مهارت‌ها</span>
+          <span className="text-ink-600">{form.skills.length} مورد</span>
+        </label>
+        <div className="flex gap-2">
+          <input
+            value={form.skillInput}
+            onChange={(e) => setForm({ ...form, skillInput: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addSkill();
+              }
+            }}
+            className="input-field flex-1"
+            placeholder="بنویس و Enter بزن"
+          />
+          <button type="button" onClick={addSkill} className="btn-ghost !px-4">
+            افزودن
+          </button>
+        </div>
+        {form.skills.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {form.skills.map((s) => (
+              <span key={s} className="chip gap-1.5">
+                {s}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      skills: f.skills.filter((x) => x !== s),
+                    }))
+                  }
+                  className="opacity-60 transition hover:opacity-100"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-xs font-medium text-ink-400">
+          درباره خودت
+        </label>
+        <textarea
+          value={form.bio}
+          onChange={(e) => setForm({ ...form, bio: e.target.value })}
+          className="input-field min-h-[100px] resize-none"
+        />
+      </div>
+
+      {/* Feedback */}
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/5 px-4 py-3 text-sm text-green-400">
+          <Check className="h-4 w-4" />
+          ذخیره شد
+        </div>
+      )}
+
+      {/* Divider */}
+      <div className="border-t border-ink-700/40 pt-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={save}
+            disabled={loading || analyzing}
+            className="btn-ghost"
+          >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "ذخیره"}
           </button>
-          <button onClick={reanalyze} disabled={loading || analyzing} className="btn-primary">
+
+          <button
+            type="button"
+            onClick={reanalyze}
+            disabled={loading || analyzing}
+            className="btn-primary"
+          >
             {analyzing ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin ml-2" />
-                تحلیل مجدد...
+                <Loader2 className="h-4 w-4 animate-spin" />
+                در حال تحلیل...
               </>
             ) : (
               <>
-                <Sparkles className="h-4 w-4 ml-2" />
+                <Sparkles className="h-4 w-4" />
                 ذخیره و تحلیل مجدد
               </>
             )}

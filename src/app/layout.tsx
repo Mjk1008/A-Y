@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css"
         />
       </head>
-      <body className="min-h-screen gradient-mesh" style={{ fontFamily: "'Vazirmatn', system-ui, sans-serif" }}>
+      <body className="min-h-screen" style={{ fontFamily: "'Vazirmatn', system-ui, sans-serif" }}>
         {children}
       </body>
     </html>

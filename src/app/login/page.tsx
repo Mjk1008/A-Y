@@ -1,6 +1,9 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,7 +15,8 @@ export default function LoginPage() {
 
   async function sendOTP(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     const res = await fetch("/api/auth/send-otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -20,13 +24,17 @@ export default function LoginPage() {
     });
     const data = await res.json();
     setLoading(false);
-    if (!res.ok) { setError(data.error); return; }
+    if (!res.ok) {
+      setError(data.error);
+      return;
+    }
     setStep("otp");
   }
 
   async function verifyOTP(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     const res = await fetch("/api/auth/verify-otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -34,65 +42,142 @@ export default function LoginPage() {
     });
     const data = await res.json();
     setLoading(false);
-    if (!res.ok) { setError(data.error); return; }
+    if (!res.ok) {
+      setError(data.error);
+      return;
+    }
     router.push(data.hasProfile ? "/dashboard" : "/onboarding");
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4" dir="rtl">
-      <div className="w-full max-w-sm bg-gray-900 rounded-2xl p-8 border border-gray-800">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">ای‌وای</h1>
-          <p className="text-gray-400 text-sm">
-            {step === "phone" ? "شماره موبایلت رو وارد کن" : `کد ارسال‌شده به ${phone} رو وارد کن`}
+    <div className="flex min-h-[100dvh] items-center justify-center px-4 py-12">
+      {/* Background */}
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 50% at 60% 40%, rgba(6,182,212,0.06), transparent 70%)",
+        }}
+      />
+
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <Link href="/" className="mb-10 flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-xs font-black text-white">
+            AY
+          </div>
+          <span className="text-sm font-bold tracking-tight">ای‌وای</span>
+        </Link>
+
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="mb-1.5 text-2xl font-black tracking-tight">
+            {step === "phone" ? "خوش اومدی" : "کد تأیید"}
+          </h1>
+          <p className="text-sm text-ink-400">
+            {step === "phone"
+              ? "برای ورود یا ثبت‌نام، شماره موبایلت رو وارد کن"
+              : `کد ارسال‌شده به ${phone} رو وارد کن`}
           </p>
         </div>
 
+        {/* Form */}
         {step === "phone" ? (
           <form onSubmit={sendOTP} className="space-y-4">
-            <input
-              type="tel"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              placeholder="09xxxxxxxxx"
-              className="w-full bg-gray-800 text-white rounded-xl px-4 py-3 text-center text-lg tracking-widest border border-gray-700 focus:border-cyan-500 outline-none"
-              dir="ltr"
-              required
-            />
-            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-ink-400">
+                شماره موبایل
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="09xxxxxxxxx"
+                className="input-field text-center text-lg tracking-widest"
+                dir="ltr"
+                required
+              />
+            </div>
+
+            {error && (
+              <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-xs text-red-400">
+                {error}
+              </p>
+            )}
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-3 rounded-xl transition disabled:opacity-50"
+              className="btn-primary w-full"
             >
-              {loading ? "در حال ارسال..." : "دریافت کد"}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  دریافت کد
+                  <ArrowLeft className="h-4 w-4" />
+                </>
+              )}
             </button>
           </form>
         ) : (
           <form onSubmit={verifyOTP} className="space-y-4">
-            <input
-              type="text"
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              placeholder="کد ۶ رقمی"
-              maxLength={6}
-              className="w-full bg-gray-800 text-white rounded-xl px-4 py-3 text-center text-2xl tracking-widest border border-gray-700 focus:border-cyan-500 outline-none"
-              dir="ltr"
-              required
-            />
-            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-ink-400">
+                کد ۶ رقمی
+              </label>
+              <input
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="— — — — — —"
+                maxLength={6}
+                className="input-field text-center text-2xl tracking-[0.5em]"
+                dir="ltr"
+                required
+              />
+            </div>
+
+            {error && (
+              <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-xs text-red-400">
+                {error}
+              </p>
+            )}
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-3 rounded-xl transition disabled:opacity-50"
+              className="btn-primary w-full"
             >
-              {loading ? "در حال تأیید..." : "ورود"}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  ورود
+                  <ArrowLeft className="h-4 w-4" />
+                </>
+              )}
             </button>
-            <button type="button" onClick={() => setStep("phone")} className="w-full text-gray-500 text-sm">
+
+            <button
+              type="button"
+              onClick={() => {
+                setStep("phone");
+                setError("");
+                setCode("");
+              }}
+              className="w-full py-2 text-xs text-ink-500 transition hover:text-ink-300"
+            >
               تغییر شماره
             </button>
           </form>
         )}
+
+        {/* Divider */}
+        <div className="mt-8 border-t border-ink-700/40 pt-6 text-center text-xs text-ink-600">
+          با ورود، با{" "}
+          <span className="text-ink-400">شرایط استفاده</span> موافقم
+        </div>
       </div>
     </div>
   );
