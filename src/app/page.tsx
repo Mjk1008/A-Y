@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import VideoHero from "./components/VideoHero";
 import Reveal from "./components/Reveal";
-import ScrollVideoBackground from "./components/ScrollVideoBackground";
+import RoboScene from "./components/RoboScene";
 import {
   PLANS,
   type Plan,
@@ -28,9 +28,10 @@ import {
 export default function Home() {
   return (
     <>
-      {/* Global scroll-locked video backdrop — fixed to the viewport so
-          it stays centered behind EVERY section as the user scrolls.    */}
-      <ScrollVideoBackground />
+      {/* Global HTML/CSS ambient scene — dark emerald-black space with
+          pixel drift, flash lines, and scroll-driven camera parallax.
+          Position: fixed, so it stays centered behind every section. */}
+      <RoboScene />
 
       <main className="relative" style={{ zIndex: 10 }}>
         <Nav />
