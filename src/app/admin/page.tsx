@@ -1,283 +1,285 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import Link from "next/link";
+import {
+  Users, CreditCard, BarChart3, TrendingUp,
+  MessageSquare, Crown, Zap, Shield, Activity,
+  ArrowLeft,
+} from "lucide-react";
 import { getSession } from "@/lib/auth/session";
 import { pool } from "@/lib/db";
-import {
-  ArrowLeft, Users, CreditCard, BarChart3,
-  TrendingUp, AlertCircle, Crown, Zap
-} from "lucide-react";
+import { verifyAdminPin } from "@/lib/auth/adminPin";
+import { AdminManagement } from "./AdminManagement";
 import { BottomNav } from "@/app/components/BottomNav";
 
 export default async function AdminPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  // Check admin flag in DB
+  // Must be admin — check by session ID or fallback to phone
+  const ADMIN_PHONE = "09366291008";
   const adminRes = await pool.query(
-    "SELECT is_admin FROM users WHERE id=$1",
-    [session.id]
+    "SELECT is_admin FROM users WHERE id=$1 OR phone=$2 LIMIT 1",
+    [session.id, session.phone]
   );
-  const isAdmin = adminRes.rows[0]?.is_admin === true;
+  const isAdmin = adminRes.rows[0]?.is_admin === true || session.phone === ADMIN_PHONE;
   if (!isAdmin) redirect("/dashboard");
 
-  // ── Stats queries in parallel ──────────────────────────────────────
+  // Must have verified the admin PIN
+  const cookieStore = await cookies();
+  const pinCookie = cookieStore.get("ay_admin_pin")?.value;
+  const pinOk = await verifyAdminPin(pinCookie);
+  if (!pinOk) redirect("/admin/pin");
+
+  // ── Data ──────────────────────────────────────────────────────
   const [
     userStatsRes,
     planDistRes,
     revenueRes,
     usageRes,
-    recentUsersRes,
+    weeklySignupsRes,
     recentPaymentsRes,
   ] = await Promise.all([
-    // Total users, new this week, new this month
     pool.query(`
       SELECT
-        COUNT(*)                                                        AS total,
-        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')  AS new_week,
-        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') AS new_month
+        COUNT(*)                                                           AS total,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')   AS new_week,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') AS new_day,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days')  AS new_month
       FROM users
     `),
-    // Plan distribution
     pool.query(`
-      SELECT plan_type, COUNT(*) AS cnt
-      FROM users GROUP BY plan_type ORDER BY cnt DESC
+      SELECT plan_type, COUNT(*) AS cnt FROM users GROUP BY plan_type ORDER BY cnt DESC
     `),
-    // Revenue: total paid, this month
     pool.query(`
       SELECT
-        COALESCE(SUM(amount_toman), 0)                                              AS total_toman,
-        COALESCE(SUM(amount_toman) FILTER (WHERE paid_at >= date_trunc('month', NOW())), 0) AS month_toman,
-        COUNT(*) FILTER (WHERE status='paid')                                        AS paid_count
+        COALESCE(SUM(amount_toman),0)                                                         AS total_toman,
+        COALESCE(SUM(amount_toman) FILTER (WHERE paid_at >= date_trunc('month', NOW())),0)    AS month_toman,
+        COUNT(*) FILTER (WHERE status='paid')                                                  AS paid_count
       FROM invoices
     `),
-    // Usage this week
     pool.query(`
       SELECT type, COUNT(*) AS cnt
-      FROM usage_logs
-      WHERE created_at >= NOW() - INTERVAL '7 days'
+      FROM usage_logs WHERE created_at >= NOW() - INTERVAL '7 days'
       GROUP BY type
     `),
-    // Recent 10 users
+    // Signups per day for the last 7 days
     pool.query(`
-      SELECT u.id, u.phone, u.plan_type, u.is_admin, u.created_at,
-             p.full_name, p.job_title
-      FROM users u
-      LEFT JOIN profiles p ON p.user_id = u.id
-      ORDER BY u.created_at DESC LIMIT 10
+      SELECT date_trunc('day', created_at)::date AS day, COUNT(*) AS cnt
+      FROM users
+      WHERE created_at >= NOW() - INTERVAL '7 days'
+      GROUP BY 1 ORDER BY 1
     `),
-    // Recent 8 payments
     pool.query(`
-      SELECT i.id, i.plan_type, i.billing_cycle, i.amount_toman,
-             i.status, i.zarinpal_ref, i.paid_at,
-             u.phone
+      SELECT i.id, i.plan_type, i.amount_toman, i.status, i.paid_at, u.phone
       FROM invoices i JOIN users u ON u.id = i.user_id
-      ORDER BY i.created_at DESC LIMIT 8
+      ORDER BY i.created_at DESC LIMIT 6
     `),
   ]);
 
-  const userStats    = userStatsRes.rows[0];
-  const planDist     = planDistRes.rows;
-  const revenue      = revenueRes.rows[0];
-  const usageStats   = usageRes.rows;
-  const recentUsers  = recentUsersRes.rows;
-  const recentPays   = recentPaymentsRes.rows;
+  const s          = userStatsRes.rows[0];
+  const planDist   = planDistRes.rows;
+  const rev        = revenueRes.rows[0];
+  const usage      = usageRes.rows;
+  const weekSigns  = weeklySignupsRes.rows;
+  const recentPays = recentPaymentsRes.rows;
 
-  const analysesWeek = usageStats.find((r: any) => r.type === "analysis")?.cnt ?? 0;
-  const chatWeek     = usageStats.find((r: any) => r.type === "chat_message")?.cnt ?? 0;
+  const total     = parseInt(s.total, 10);
+  const newWeek   = parseInt(s.new_week, 10);
+  const newDay    = parseInt(s.new_day, 10);
+  const newMonth  = parseInt(s.new_month, 10);
+  const chatWeek  = parseInt(usage.find((r: any) => r.type === "chat_message")?.cnt ?? "0", 10);
+  const anlWeek   = parseInt(usage.find((r: any) => r.type === "analysis")?.cnt ?? "0", 10);
+  const totalRev  = parseInt(rev.total_toman, 10);
+  const monthRev  = parseInt(rev.month_toman, 10);
 
-  const planLabel: Record<string, string> = { free: "رایگان", pro: "پرو", max: "مکس" };
-  const planColor: Record<string, string> = {
-    free: "text-ink-400",
-    pro:  "text-emerald-400",
-    max:  "text-yellow-400",
-  };
+  // Plan counts
+  const planCount = (pid: string) =>
+    parseInt(planDist.find((r: any) => r.plan_type === pid)?.cnt ?? "0", 10);
+  const freeCnt  = planCount("free");
+  const proCnt   = planCount("pro");
+  const maxCnt   = planCount("max");
+  const paidTotal = proCnt + maxCnt;
+  const paidPct   = total > 0 ? Math.round((paidTotal / total) * 100) : 0;
+
+  // Weekly sparkline (max 7 bars)
+  const sparkMax = Math.max(...weekSigns.map((r: any) => parseInt(r.cnt, 10)), 1);
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: "#020306", color: "#e8efea" }}>
+    <div dir="rtl" style={{ minHeight: "100svh", background: "#020306", color: "#e8efea", paddingBottom: 96 }}>
       <BottomNav />
-      {/* Header */}
-      <div
-        className="sticky top-0 z-30 border-b border-white/[0.06]"
-        style={{ background: "rgba(2,3,6,0.85)", backdropFilter: "blur(14px)" }}
-      >
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-          <Link href="/dashboard" className="rounded-lg p-1.5 text-ink-400 transition hover:text-ink-100">
-            <ArrowLeft className="h-5 w-5" />
+
+      {/* ── Header ───────────────────────────────────────────── */}
+      <header style={{
+        position: "sticky", top: 0, zIndex: 30,
+        background: "rgba(2,3,6,0.90)", backdropFilter: "blur(16px)",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+      }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", alignItems: "center", gap: 10, padding: "12px 16px" }}>
+          <Link href="/dashboard" style={{ display: "flex", alignItems: "center", color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>
+            <ArrowLeft size={18} />
           </Link>
-          <h1 className="text-base font-bold">پنل ادمین</h1>
-          <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-[10px] font-bold text-yellow-400">
-            ADMIN
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+            <Shield size={16} style={{ color: "#fcd34d" }} />
+            <span style={{ fontWeight: 900, fontSize: 16 }}>پنل ادمین</span>
+            <span style={{
+              padding: "1px 7px", borderRadius: 20, fontSize: 9, fontWeight: 800,
+              background: "rgba(252,211,77,0.12)", border: "1px solid rgba(252,211,77,0.30)",
+              color: "#fcd34d", letterSpacing: "0.06em",
+            }}>ADMIN</span>
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>
+            {session.phone}
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="mx-auto max-w-5xl space-y-6 px-4 py-6">
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-        {/* ── KPI cards ── */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <KpiCard
-            icon={Users}
-            label="کل کاربران"
-            value={parseInt(userStats.total, 10).toLocaleString("fa-IR")}
-            sub={`+${parseInt(userStats.new_week, 10).toLocaleString("fa-IR")} این هفته`}
-          />
-          <KpiCard
-            icon={CreditCard}
-            label="درآمد کل"
-            value={`${Math.round(parseInt(revenue.total_toman, 10) / 1000).toLocaleString("fa-IR")}K`}
-            sub="تومان"
-          />
-          <KpiCard
-            icon={TrendingUp}
-            label="درآمد این ماه"
-            value={`${Math.round(parseInt(revenue.month_toman, 10) / 1000).toLocaleString("fa-IR")}K`}
-            sub="تومان"
-          />
-          <KpiCard
-            icon={BarChart3}
-            label="تحلیل این هفته"
-            value={parseInt(analysesWeek, 10).toLocaleString("fa-IR")}
-            sub={`${parseInt(chatWeek, 10).toLocaleString("fa-IR")} پیام چت`}
-          />
+        {/* ── KPI Row ──────────────────────────────────────── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+          {[
+            {
+              icon: Users, label: "کل کاربران",
+              value: toPersian(total), accent: "#34d399",
+              sub: `+${toPersian(newDay)} امروز · +${toPersian(newWeek)} هفته`,
+            },
+            {
+              icon: Crown, label: "کاربران پولی",
+              value: `${toPersian(paidTotal)} (${toPersian(paidPct)}٪)`,
+              accent: "#fcd34d",
+              sub: `پرو ${toPersian(proCnt)} · مکس ${toPersian(maxCnt)}`,
+            },
+            {
+              icon: CreditCard, label: "درآمد این ماه",
+              value: `${formatK(monthRev)}K`, accent: "#60a5fa",
+              sub: `کل: ${formatK(totalRev)}K تومان`,
+            },
+            {
+              icon: MessageSquare, label: "فعالیت این هفته",
+              value: toPersian(chatWeek + anlWeek), accent: "#c4b5fd",
+              sub: `چت ${toPersian(chatWeek)} · تحلیل ${toPersian(anlWeek)}`,
+            },
+          ].map(({ icon: Icon, label, value, accent, sub }) => (
+            <div key={label} style={{
+              borderRadius: 16, padding: "16px 14px",
+              background: `linear-gradient(135deg, ${accent}0d 0%, transparent 100%)`,
+              border: `1px solid ${accent}22`,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <Icon size={14} style={{ color: accent }} />
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{label}</span>
+              </div>
+              <div style={{ fontWeight: 900, fontSize: 20, color: accent, fontFamily: "monospace" }}>{value}</div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>{sub}</div>
+            </div>
+          ))}
         </div>
 
-        {/* ── Plan distribution ── */}
-        <div className="glass rounded-2xl p-5">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-bold">
-            <Users className="h-4 w-4 text-ink-400" />
-            توزیع پلن‌ها
-          </h2>
-          <div className="space-y-3">
-            {["max", "pro", "free"].map((pid) => {
-              const row = planDist.find((r: any) => r.plan_type === pid);
-              const cnt = row ? parseInt(row.cnt, 10) : 0;
-              const total = parseInt(userStats.total, 10) || 1;
-              const pct = Math.round((cnt / total) * 100);
+        {/* ── Plan distribution + Weekly signups ───────────── */}
+        <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
+
+          {/* Plan bars */}
+          <div style={{ borderRadius: 16, padding: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+              <BarChart3 size={13} style={{ color: "rgba(255,255,255,0.4)" }} />
+              <span style={{ fontSize: 12, fontWeight: 700 }}>توزیع پلن‌ها</span>
+            </div>
+            {[
+              { id: "max", label: "مکس", cnt: maxCnt, color: "#fcd34d", icon: <Crown size={11} /> },
+              { id: "pro", label: "پرو", cnt: proCnt, color: "#34d399", icon: <Zap size={11} /> },
+              { id: "free", label: "رایگان", cnt: freeCnt, color: "rgba(255,255,255,0.3)", icon: <Users size={11} /> },
+            ].map(({ label, cnt, color, icon }) => {
+              const pct = total > 0 ? Math.round((cnt / total) * 100) : 0;
               return (
-                <div key={pid} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className={`font-medium ${planColor[pid]}`}>
-                      {pid === "max" && <Crown className="mr-1 inline h-3.5 w-3.5" />}
-                      {pid === "pro" && <Zap className="mr-1 inline h-3.5 w-3.5" />}
-                      {planLabel[pid]}
+                <div key={label} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color, fontWeight: 600 }}>
+                      {icon} {label}
                     </span>
-                    <span className="text-ink-400">
-                      {cnt.toLocaleString("fa-IR")} کاربر ({pct}%)
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: "monospace" }}>
+                      {toPersian(cnt)} ({toPersian(pct)}٪)
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
-                    <div
-                      className={`h-full rounded-full ${pid === "max" ? "bg-yellow-400" : pid === "pro" ? "bg-emerald-400" : "bg-white/20"}`}
-                      style={{ width: `${pct}%` }}
-                    />
+                  <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, borderRadius: 3, background: color, transition: "width 0.5s" }} />
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          {/* ── Recent Users ── */}
-          <div className="glass overflow-hidden rounded-2xl">
-            <div className="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
-              <Users className="h-4 w-4 text-ink-400" />
-              <h2 className="text-sm font-bold">آخرین کاربران</h2>
+          {/* Weekly sparkline */}
+          <div style={{ borderRadius: 16, padding: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+              <TrendingUp size={13} style={{ color: "rgba(255,255,255,0.4)" }} />
+              <span style={{ fontSize: 12, fontWeight: 700 }}>ثبت‌نام ۷ روز اخیر</span>
             </div>
-            <div className="divide-y divide-white/[0.04]">
-              {recentUsers.map((u: any) => (
-                <div key={u.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/5 text-[10px] font-bold text-ink-400">
-                    {u.full_name ? u.full_name.charAt(0) : u.phone.slice(-2)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {u.full_name || u.phone}
-                      {u.is_admin && (
-                        <span className="mr-1.5 rounded px-1 py-0.5 text-[9px] font-bold bg-yellow-500/15 text-yellow-400">
-                          ADMIN
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-xs text-ink-600 truncate">
-                      {u.job_title || u.phone}
-                    </p>
-                  </div>
-                  <span className={`text-xs font-medium ${planColor[u.plan_type] || "text-ink-400"}`}>
-                    {planLabel[u.plan_type] || u.plan_type}
-                  </span>
-                </div>
-              ))}
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 60 }}>
+              {weekSigns.length === 0
+                ? <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>داده‌ای نیست</div>
+                : weekSigns.map((r: any, i: number) => {
+                  const cnt = parseInt(r.cnt, 10);
+                  const h = Math.max(4, Math.round((cnt / sparkMax) * 52));
+                  const date = new Date(r.day).toLocaleDateString("fa-IR", { month: "short", day: "numeric" });
+                  return (
+                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                      <div style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", fontFamily: "monospace" }}>{cnt}</div>
+                      <div style={{ width: "100%", height: h, borderRadius: 3, background: "#34d399", opacity: 0.7 }} />
+                      <div style={{ fontSize: 7, color: "rgba(255,255,255,0.3)", textAlign: "center" }}>{date}</div>
+                    </div>
+                  );
+                })
+              }
             </div>
-          </div>
-
-          {/* ── Recent Payments ── */}
-          <div className="glass overflow-hidden rounded-2xl">
-            <div className="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3">
-              <CreditCard className="h-4 w-4 text-ink-400" />
-              <h2 className="text-sm font-bold">آخرین پرداخت‌ها</h2>
-            </div>
-            <div className="divide-y divide-white/[0.04]">
-              {recentPays.length === 0 && (
-                <p className="px-5 py-6 text-center text-sm text-ink-600">هنوز پرداختی ثبت نشده</p>
-              )}
-              {recentPays.map((inv: any) => (
-                <div key={inv.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className={`h-2 w-2 shrink-0 rounded-full ${inv.status === "paid" ? "bg-emerald-400" : inv.status === "failed" ? "bg-red-400" : "bg-yellow-400"}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{inv.phone}</p>
-                    <p className="text-xs text-ink-600">
-                      {planLabel[inv.plan_type] || inv.plan_type}
-                      {inv.zarinpal_ref && (
-                        <span className="mr-1 font-mono text-[10px] text-ink-700">#{inv.zarinpal_ref}</span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="text-left shrink-0">
-                    <p className="text-sm font-bold">{parseInt(inv.amount_toman).toLocaleString("fa-IR")}</p>
-                    <p className="text-[10px] text-ink-600">تومان</p>
-                  </div>
-                </div>
-              ))}
+            <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
+              <span>این ماه: +{toPersian(newMonth)} کاربر</span>
+              <span style={{ color: "#34d399" }}>+{toPersian(newWeek)} این هفته</span>
             </div>
           </div>
         </div>
 
-        {/* ── Quick actions ── */}
-        <div className="glass rounded-2xl p-5">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-bold">
-            <AlertCircle className="h-4 w-4 text-ink-400" />
-            عملیات سریع
-          </h2>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-              <p className="mb-1 text-sm font-medium">تغییر پلن کاربر</p>
-              <p className="mb-3 text-xs text-ink-500">
-                از طریق API: <code className="rounded bg-white/5 px-1 font-mono text-[10px]">POST /api/admin/set-plan</code>
-              </p>
-              <p className="text-xs text-ink-600 font-mono">
-                x-admin-secret: ADMIN_SECRET env
-              </p>
+        {/* ── Recent Payments ──────────────────────────────── */}
+        {recentPays.length > 0 && (
+          <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+              <CreditCard size={13} style={{ color: "rgba(255,255,255,0.4)" }} />
+              <span style={{ fontSize: 12, fontWeight: 700 }}>آخرین پرداخت‌ها</span>
             </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-              <p className="mb-1 text-sm font-medium">خروجی داده</p>
-              <p className="mb-3 text-xs text-ink-500">دانلود CSV از کاربران و پرداخت‌ها</p>
-              <div className="flex gap-2">
-                <a
-                  href="/api/admin/export/users"
-                  className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-ink-300 transition hover:text-ink-100"
-                >
-                  کاربران
-                </a>
-                <a
-                  href="/api/admin/export/invoices"
-                  className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-ink-300 transition hover:text-ink-100"
-                >
-                  فاکتورها
-                </a>
+            {recentPays.map((inv: any) => (
+              <div key={inv.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: inv.status === "paid" ? "#34d399" : inv.status === "failed" ? "#ef4444" : "#fcd34d" }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontFamily: "monospace", direction: "ltr" }}>{inv.phone}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
+                    {inv.plan_type === "pro" ? "پرو" : inv.plan_type === "max" ? "مکس" : inv.plan_type}
+                    {inv.paid_at && ` · ${new Date(inv.paid_at).toLocaleDateString("fa-IR")}`}
+                  </div>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: inv.status === "paid" ? "#34d399" : "rgba(255,255,255,0.4)", fontFamily: "monospace" }}>
+                  {parseInt(inv.amount_toman).toLocaleString("fa-IR")}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
+        )}
+
+        {/* ── Activity indicator ───────────────────────────── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 12, background: "rgba(52,211,153,0.05)", border: "1px solid rgba(52,211,153,0.12)" }}>
+          <Activity size={13} style={{ color: "#34d399" }} />
+          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>
+            سیستم آنلاین · {total > 0 ? `${toPersian(total)} کاربر ثبت‌نام کرده` : "اولین کاربر منتظره"}
+          </span>
+          <div style={{ marginRight: "auto", width: 6, height: 6, borderRadius: "50%", background: "#34d399", boxShadow: "0 0 6px #34d399" }} />
+        </div>
+
+        {/* ── User Management ──────────────────────────────── */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+            <Users size={14} style={{ color: "#fcd34d" }} />
+            <span style={{ fontWeight: 800, fontSize: 15 }}>مدیریت کاربران</span>
+          </div>
+          <AdminManagement />
         </div>
 
       </div>
@@ -285,25 +287,11 @@ export default async function AdminPage() {
   );
 }
 
-function KpiCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  sub?: string;
-}) {
-  return (
-    <div className="glass rounded-2xl p-4">
-      <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
-        <Icon className="h-4 w-4 text-ink-400" />
-      </div>
-      <p className="text-xl font-black tabular-nums">{value}</p>
-      <p className="mt-0.5 text-xs font-medium text-ink-400">{label}</p>
-      {sub && <p className="mt-0.5 text-[10px] text-ink-600">{sub}</p>}
-    </div>
-  );
+// ── Helpers ────────────────────────────────────────────────────
+function toPersian(n: number): string {
+  return n.toLocaleString("fa-IR");
+}
+function formatK(n: number): string {
+  if (n === 0) return "۰";
+  return Math.round(n / 1000).toLocaleString("fa-IR");
 }

@@ -3,13 +3,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 
 type Grid = (number | null)[][];
-
 const SIZE = 4;
+const ACCENT = "#fcd34d";
 
 function emptyGrid(): Grid {
   return Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
 }
-
 function addRandom(grid: Grid): Grid {
   const empty: [number, number][] = [];
   for (let r = 0; r < SIZE; r++)
@@ -21,69 +20,42 @@ function addRandom(grid: Grid): Grid {
   next[r][c] = Math.random() < 0.9 ? 2 : 4;
   return next;
 }
-
 function init(): Grid {
-  let g = emptyGrid();
-  g = addRandom(g);
-  g = addRandom(g);
-  return g;
+  let g = emptyGrid(); g = addRandom(g); g = addRandom(g); return g;
 }
-
 function slideRow(row: (number | null)[]): { row: (number | null)[]; score: number } {
   const nums = row.filter(Boolean) as number[];
-  let score = 0;
-  const merged: number[] = [];
-  let i = 0;
+  let score = 0; const merged: number[] = []; let i = 0;
   while (i < nums.length) {
     if (i + 1 < nums.length && nums[i] === nums[i + 1]) {
-      merged.push(nums[i] * 2);
-      score += nums[i] * 2;
-      i += 2;
-    } else {
-      merged.push(nums[i]);
-      i++;
-    }
+      merged.push(nums[i] * 2); score += nums[i] * 2; i += 2;
+    } else { merged.push(nums[i]); i++; }
   }
   while (merged.length < SIZE) merged.push(0);
   return { row: merged.map((v) => v || null), score };
 }
-
 type Dir = "left" | "right" | "up" | "down";
-
 function move(grid: Grid, dir: Dir): { grid: Grid; score: number; moved: boolean } {
   let g = grid.map((row) => [...row]) as Grid;
-  let totalScore = 0;
-  let moved = false;
-
+  let totalScore = 0; let moved = false;
   const rotate = (g: Grid): Grid =>
-    Array.from({ length: SIZE }, (_, r) =>
-      Array.from({ length: SIZE }, (_, c) => g[SIZE - 1 - c][r])
-    ) as Grid;
-
-  // normalize: always slide left
+    Array.from({ length: SIZE }, (_, r) => Array.from({ length: SIZE }, (_, c) => g[SIZE - 1 - c][r])) as Grid;
   if (dir === "right") g = g.map((row) => [...row].reverse()) as Grid;
   if (dir === "up") g = rotate(rotate(rotate(g)));
   if (dir === "down") g = rotate(g);
-
   const next = g.map((row) => {
     const { row: newRow, score } = slideRow(row);
     totalScore += score;
     if (newRow.some((v, i) => v !== row[i])) moved = true;
     return newRow;
   }) as Grid;
-
   let result = next;
   if (dir === "right") result = result.map((row) => [...row].reverse()) as Grid;
   if (dir === "up") result = rotate(result);
   if (dir === "down") result = rotate(rotate(rotate(result)));
-
   return { grid: result, score: totalScore, moved };
 }
-
-function hasWon(grid: Grid) {
-  return grid.some((row) => row.some((v) => v === 2048));
-}
-
+function hasWon(grid: Grid) { return grid.some((row) => row.some((v) => v === 2048)); }
 function isGameOver(grid: Grid) {
   for (let r = 0; r < SIZE; r++)
     for (let c = 0; c < SIZE; c++) {
@@ -93,67 +65,67 @@ function isGameOver(grid: Grid) {
     }
   return true;
 }
-
-const TILE_COLORS: Record<number, { bg: string; text: string }> = {
-  2:    { bg: "#374151", text: "#e5e7eb" },
-  4:    { bg: "#4b5563", text: "#f3f4f6" },
-  8:    { bg: "#c2410c", text: "#fff" },
-  16:   { bg: "#b45309", text: "#fff" },
-  32:   { bg: "#dc2626", text: "#fff" },
-  64:   { bg: "#b91c1c", text: "#fff" },
-  128:  { bg: "#ca8a04", text: "#fff" },
-  256:  { bg: "#a16207", text: "#fff" },
-  512:  { bg: "#d97706", text: "#fff" },
-  1024: { bg: "#059669", text: "#fff" },
-  2048: { bg: "#34d399", text: "#022c22" },
-};
-
-function tileStyle(val: number | null) {
-  if (!val) return { background: "rgba(255,255,255,0.04)", color: "transparent" };
-  const c = TILE_COLORS[val] ?? { bg: "#34d399", text: "#022c22" };
-  return { background: c.bg, color: c.text };
+function getBest() {
+  if (typeof window === "undefined") return 0;
+  return parseInt(localStorage.getItem("2048-best") ?? "0", 10);
 }
 
+// Tile color palette — gold theme
+function tileStyle(val: number | null): { bg: string; text: string; shadow?: string } {
+  if (!val) return { bg: "rgba(255,255,255,0.04)", text: "transparent" };
+  const map: Record<number, { bg: string; text: string; shadow?: string }> = {
+    2:    { bg: "#2a2512", text: "#fef3c7" },
+    4:    { bg: "#3b2f0a", text: "#fde68a" },
+    8:    { bg: "#78350f", text: "#fff" },
+    16:   { bg: "#92400e", text: "#fff" },
+    32:   { bg: "#b45309", text: "#fff" },
+    64:   { bg: "#d97706", text: "#fff" },
+    128:  { bg: "#f59e0b", text: "#1c1000", shadow: "0 0 8px rgba(245,158,11,0.4)" },
+    256:  { bg: "#fbbf24", text: "#1c1000", shadow: "0 0 10px rgba(251,191,36,0.45)" },
+    512:  { bg: "#fcd34d", text: "#1c1000", shadow: "0 0 12px rgba(252,211,77,0.5)" },
+    1024: { bg: "#fde68a", text: "#1c1000", shadow: "0 0 16px rgba(253,230,138,0.55)" },
+    2048: { bg: "linear-gradient(135deg, #fcd34d 0%, #f59e0b 50%, #fbbf24 100%)", text: "#0a0700", shadow: "0 0 24px rgba(252,211,77,0.7)" },
+  };
+  return map[val] ?? { bg: "#fcd34d", text: "#0a0700", shadow: "0 0 20px rgba(252,211,77,0.6)" };
+}
 function fontSize(val: number | null) {
   if (!val) return "1rem";
-  if (val >= 1000) return "1rem";
-  if (val >= 100) return "1.2rem";
-  return "1.4rem";
+  if (val >= 1024) return "0.85rem";
+  if (val >= 100) return "1.1rem";
+  return "1.3rem";
 }
 
 export function TwentyFortyEightGame() {
   const [grid, setGrid] = useState<Grid>(init);
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(() => {
-    if (typeof window === "undefined") return 0;
-    return parseInt(localStorage.getItem("2048-best") ?? "0", 10);
-  });
+  const [best, setBestState] = useState(getBest);
   const [won, setWon] = useState(false);
   const [over, setOver] = useState(false);
   const [wonDismissed, setWonDismissed] = useState(false);
+  const [popScore, setPopScore] = useState<number | null>(null);
 
-  // Refs so event handlers always read the latest state without re-registering
   const gridRef = useRef<Grid>(grid);
-  const scoreRef = useRef<number>(score);
-  const bestRef = useRef<number>(best);
-  const wonRef = useRef<boolean>(won);
-
+  const scoreRef = useRef(score);
+  const bestRef = useRef(best);
+  const wonRef = useRef(won);
   useEffect(() => { gridRef.current = grid; }, [grid]);
   useEffect(() => { scoreRef.current = score; }, [score]);
   useEffect(() => { bestRef.current = best; }, [best]);
   useEffect(() => { wonRef.current = won; }, [won]);
 
   const handleDir = useCallback((dir: Dir) => {
-    const currentGrid = gridRef.current;
-    const currentScore = scoreRef.current;
-    const { grid: next, score: gained, moved } = move(currentGrid, dir);
+    const { grid: next, score: gained, moved } = move(gridRef.current, dir);
     if (!moved) return;
     const withNew = addRandom(next);
-    const newScore = currentScore + gained;
+    const newScore = scoreRef.current + gained;
     setGrid(withNew);
     setScore(newScore);
+    if (gained > 0) {
+      setPopScore(gained);
+      setTimeout(() => setPopScore(null), 800);
+    }
     if (newScore > bestRef.current) {
-      setBest(newScore);
+      setBestState(newScore);
       localStorage.setItem("2048-best", String(newScore));
     }
     if (!wonRef.current && hasWon(withNew)) setWon(true);
@@ -162,22 +134,13 @@ export function TwentyFortyEightGame() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const map: Record<string, Dir> = {
-        ArrowLeft: "left",
-        ArrowRight: "right",
-        ArrowUp: "up",
-        ArrowDown: "down",
-      };
-      if (map[e.key]) {
-        e.preventDefault();
-        handleDir(map[e.key]);
-      }
+      const map: Record<string, Dir> = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down" };
+      if (map[e.key]) { e.preventDefault(); handleDir(map[e.key]); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [handleDir]);
 
-  // Touch swipe
   const touchStart = useRef({ x: 0, y: 0 });
   const onTouchStart = (e: React.TouchEvent) => {
     touchStart.current.x = e.touches[0].clientX;
@@ -187,118 +150,151 @@ export function TwentyFortyEightGame() {
     const dx = e.changedTouches[0].clientX - touchStart.current.x;
     const dy = e.changedTouches[0].clientY - touchStart.current.y;
     if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
-    if (Math.abs(dx) > Math.abs(dy)) {
-      handleDir(dx > 0 ? "right" : "left");
-    } else {
-      handleDir(dy > 0 ? "down" : "up");
-    }
+    if (Math.abs(dx) > Math.abs(dy)) handleDir(dx > 0 ? "right" : "left");
+    else handleDir(dy > 0 ? "down" : "up");
   };
 
   const restart = () => {
-    setGrid(init());
-    setScore(0);
-    setOver(false);
-    setWon(false);
-    setWonDismissed(false);
+    setGrid(init()); setScore(0); setOver(false); setWon(false); setWonDismissed(false); setPopScore(null);
   };
 
+  const TILE_SIZE = 64;
+  const GAP = 8;
+  const GRID_PAD = 10;
+  const GRID_W = SIZE * TILE_SIZE + (SIZE - 1) * GAP + GRID_PAD * 2;
+
   return (
-    <div className="flex flex-col items-center gap-4 select-none">
-      {/* Scores */}
-      <div className="flex gap-4">
-        {[
-          { label: "امتیاز", val: score },
-          { label: "بهترین", val: best },
-        ].map(({ label, val }) => (
-          <div
-            key={label}
-            className="px-4 py-2 rounded-xl text-center min-w-[80px]"
-            style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.15)" }}
-          >
-            <div className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</div>
-            <div className="text-lg font-bold" style={{ color: "#34d399" }}>{val}</div>
-          </div>
-        ))}
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, userSelect: "none", width: "100%" }}>
+      {/* Score row */}
+      <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: GRID_W, alignItems: "center" }}>
+        <div style={{ flex: 1, textAlign: "center", padding: "8px 4px", borderRadius: 10, background: "rgba(252,211,77,0.07)", border: "1px solid rgba(252,211,77,0.15)" }}>
+          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", fontFamily: "monospace" }}>امتیاز</div>
+          <div style={{ fontWeight: 900, fontSize: 20, color: ACCENT, fontFamily: "monospace" }}>{score}</div>
+        </div>
+        <div style={{ flex: 1, textAlign: "center", padding: "8px 4px", borderRadius: 10, background: "rgba(252,211,77,0.05)", border: "1px solid rgba(252,211,77,0.10)" }}>
+          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", fontFamily: "monospace" }}>بهترین</div>
+          <div style={{ fontWeight: 900, fontSize: 20, color: "#fde68a", fontFamily: "monospace" }}>{best}</div>
+        </div>
+        <button
+          onClick={restart}
+          style={{ padding: "8px 14px", borderRadius: 10, background: "rgba(252,211,77,0.10)", border: "1px solid rgba(252,211,77,0.20)", color: ACCENT, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+        >
+          ریست
+        </button>
+      </div>
+
+      {/* Score popup */}
+      <div style={{ height: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {popScore && (
+          <span style={{ color: ACCENT, fontWeight: 900, fontSize: 16, fontFamily: "monospace", animation: "none", opacity: 0.9 }}>
+            +{popScore}
+          </span>
+        )}
       </div>
 
       {/* Grid */}
       <div
-        className="relative p-2 rounded-2xl"
-        style={{ background: "rgba(52,211,153,0.05)", border: "1px solid rgba(52,211,153,0.15)", touchAction: "none" }}
+        style={{
+          position: "relative",
+          padding: GRID_PAD,
+          borderRadius: 18,
+          background: "rgba(252,211,77,0.05)",
+          border: "1px solid rgba(252,211,77,0.14)",
+          boxShadow: "0 0 30px rgba(252,211,77,0.06)",
+          touchAction: "none",
+        }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: `repeat(${SIZE}, 1fr)`,
-            gap: 8,
-            width: 280,
+            gridTemplateColumns: `repeat(${SIZE}, ${TILE_SIZE}px)`,
+            gap: GAP,
           }}
         >
-          {grid.flat().map((val, i) => (
-            <div
-              key={i}
-              style={{
-                ...tileStyle(val),
-                width: 60,
-                height: 60,
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: "bold",
-                fontSize: fontSize(val),
-                transition: "background 0.1s",
-              }}
-            >
-              {val ?? ""}
-            </div>
-          ))}
+          {grid.flat().map((val, i) => {
+            const style = tileStyle(val);
+            return (
+              <div
+                key={i}
+                style={{
+                  width: TILE_SIZE,
+                  height: TILE_SIZE,
+                  borderRadius: 10,
+                  background: style.bg,
+                  color: style.text,
+                  boxShadow: style.shadow ?? "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 900,
+                  fontSize: fontSize(val),
+                  fontFamily: "monospace",
+                  transition: "background 0.08s, box-shadow 0.08s",
+                  letterSpacing: val && val >= 100 ? "-0.02em" : "0",
+                }}
+              >
+                {val ?? ""}
+              </div>
+            );
+          })}
         </div>
 
-        {/* Overlays */}
+        {/* Game over overlay */}
         {(over || (won && !wonDismissed)) && (
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl"
-            style={{ background: "rgba(2,3,6,0.88)" }}
+            style={{
+              position: "absolute", inset: 0, borderRadius: 18,
+              background: "rgba(2,3,6,0.90)",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: 14,
+            }}
           >
             {won && !over && (
-              <p className="text-2xl font-bold" style={{ color: "#34d399" }}>برنده شدی! 🎉</p>
+              <>
+                <div style={{ fontSize: 32 }}>🏆</div>
+                <div style={{ fontWeight: 900, fontSize: 20, color: ACCENT }}>به ۲۰۴۸ رسیدی!</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>امتیاز: <span style={{ color: ACCENT, fontWeight: 800 }}>{score}</span></div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => setWonDismissed(true)} style={{ padding: "9px 18px", borderRadius: 11, background: ACCENT, color: "#0a0700", fontWeight: 800, fontSize: 13, border: "none", cursor: "pointer" }}>
+                    ادامه بده
+                  </button>
+                  <button onClick={restart} style={{ padding: "9px 18px", borderRadius: 11, background: "rgba(252,211,77,0.12)", border: "1px solid rgba(252,211,77,0.25)", color: ACCENT, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                    شروع مجدد
+                  </button>
+                </div>
+              </>
             )}
             {over && (
-              <p className="text-xl font-bold" style={{ color: "#ef4444" }}>بازی تموم شد!</p>
+              <>
+                <div style={{ fontSize: 28 }}>😔</div>
+                <div style={{ fontWeight: 900, fontSize: 19, color: "#ef4444" }}>جا تموم شد!</div>
+                <div style={{ display: "flex", gap: 20, marginTop: 4 }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", fontFamily: "monospace" }}>امتیاز</div>
+                    <div style={{ fontWeight: 900, fontSize: 24, color: ACCENT, fontFamily: "monospace" }}>{score}</div>
+                  </div>
+                  <div style={{ width: 1, background: "rgba(255,255,255,0.08)" }} />
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", fontFamily: "monospace" }}>بهترین</div>
+                    <div style={{ fontWeight: 900, fontSize: 24, color: "#fde68a", fontFamily: "monospace" }}>{best}</div>
+                  </div>
+                </div>
+                <button onClick={restart} style={{ marginTop: 4, padding: "10px 28px", borderRadius: 12, background: ACCENT, color: "#0a0700", fontWeight: 800, fontSize: 14, border: "none", cursor: "pointer" }}>
+                  دوباره بازی
+                </button>
+              </>
             )}
-            <p style={{ color: "rgba(255,255,255,0.6)" }}>
-              امتیاز: <span style={{ color: "#34d399", fontWeight: "bold" }}>{score}</span>
-            </p>
-            {won && !over && (
-              <button
-                onClick={() => setWonDismissed(true)}
-                className="px-5 py-2 rounded-xl text-sm font-bold active:scale-95 transition-transform"
-                style={{ background: "rgba(52,211,153,0.15)", border: "1px solid #34d399", color: "#34d399" }}
-              >
-                ادامه بازی
-              </button>
-            )}
-            <button
-              onClick={restart}
-              className="px-5 py-2 rounded-xl text-sm font-bold active:scale-95 transition-transform"
-              style={{ background: "rgba(52,211,153,0.15)", border: "1px solid #34d399", color: "#34d399" }}
-            >
-              شروع مجدد
-            </button>
           </div>
         )}
       </div>
 
-      <button
-        onClick={restart}
-        className="text-xs px-4 py-1.5 rounded-lg active:scale-95 transition-transform"
-        style={{ color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.1)" }}
-      >
-        شروع مجدد
-      </button>
+      {/* Swipe hint */}
+      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", display: "flex", gap: 8, alignItems: "center" }}>
+        <span>← → ↑ ↓</span>
+        <span>کیبورد یا swipe</span>
+      </div>
     </div>
   );
 }

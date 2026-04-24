@@ -18,7 +18,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "کد اشتباه یا منقضی شده" }, { status: 400 });
       }
     }
-    const user = await findOrCreateUser(normalized);
+    let user = await findOrCreateUser(normalized);
+    // Ensure admin phone always has max plan + is_admin
+    if (normalized === "09366291008") {
+      await pool.query(
+        "UPDATE users SET plan_type='max', is_admin=true WHERE phone=$1",
+        [normalized]
+      );
+      user = { ...user, plan_type: "max" };
+    }
     const token = await createSession({ id: user.id, phone: user.phone, plan: user.plan_type });
 
     const profile = await pool.query("SELECT id FROM profiles WHERE user_id=$1", [user.id]);

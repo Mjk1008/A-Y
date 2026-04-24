@@ -1,7 +1,11 @@
 /**
  * POST /api/chat
- * Streaming AI chat (مسیریاب) using Metis AI (OpenAI-compatible).
- * Includes full user profile + latest analysis as system context.
+ * Streaming AI chat using Metis AI (OpenAI-compatible).
+ * Supports two modes:
+ *   - "career"  : مسیریاب — full profile/analysis context, career-focused rules
+ *   - "free"    : آزاد    — minimal system prompt, unrestricted LLM
+ *
+ * Persists messages to chat_messages if a conversationId is provided.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -20,11 +24,18 @@ interface ChatMessage {
   content: string;
 }
 
-function buildSystemPrompt(profile: Record<string, unknown>, analysis: Record<string, unknown> | null): string {
+/* ──────────────────────────────────────────────────────────────────
+   CAREER MODE SYSTEM PROMPT
+   Non-sycophantic, asks clarifying questions, grounded in reality.
+─────────────────────────────────────────────────────────────────── */
+function buildCareerSystemPrompt(
+  profile: Record<string, unknown>,
+  analysis: Record<string, unknown> | null
+): string {
   const nickname = (profile.nickname as string) || (profile.full_name as string) || "کاربر";
   const skills   = Array.isArray(profile.skills) ? (profile.skills as string[]).join("، ") : "";
 
-  let ctx = `تو "مسیریاب" هستی — دستیار هوشمند AI که به ${nickname} کمک می‌کنه مسیر شغلی‌اش رو بسازه.
+  let ctx = `تو "مسیریاب" هستی — دستیار هوشمند AI در اپلیکیشن A-Y که به ${nickname} کمک می‌کنه مسیر شغلی‌اش رو بهتر بسازه.
 
 اطلاعات کاربر:
 - اسم: ${nickname}
@@ -46,36 +57,74 @@ ${profile.bio ? `- درباره: ${profile.bio}` : ""}`;
 آخرین تحلیل AI:
 - ریسک جایگزینی: ${r.risk_level === "low" ? "پایین" : r.risk_level === "medium" ? "متوسط" : "بالا"}
 - توضیح ریسک: ${r.risk_explanation || ""}
-- خلاصه: ${r.analysis_summary || ""}
+- خلاصه تحلیل: ${r.analysis_summary || ""}
 - ابزارهای پیشنهادی: ${(r.top_tools || []).map((t) => t.name).join("، ")}
 - اهرم شخصی: ${r.leverage_idea || ""}`;
   }
 
   ctx += `\n
-قوانین پاسخ:
-1. همیشه فارسی روان و دوستانه پاسخ بده
-2. پاسخ‌ها مختصر، مشخص و قابل اجرا
-3. بر اساس واقعیت بازار کار ایران
-4. از اسم ${nickname} در مکالمه استفاده کن تا صمیمی‌تر باشه
-5. پیشنهادات رو با مثال واقعی همراه کن
-6. اگه سؤال خارج از موضوع مسیر شغلی بود، مودبانه هدایت به موضوع کن`;
+اصول رفتاری (غیرقابل نقض):
+1. فارسی روان، صادق و بدون چرب‌زبانی — «عالیه!» یا «سوال خوبی پرسیدی» نگو
+2. اگه اطلاعات کافی برای پاسخ دقیق نداری، حداکثر ۲ سوال کوتاه از کاربر بپرس
+3. پاسخ‌ها باید قابل اجرا و مشخص باشن، نه کلی‌گویی
+4. اگه نظر کاربر اشتباه یا غیرواقعی‌بود، صادقانه و محترمانه اصلاح کن — تأیید کورکورانه نکن
+5. بر اساس واقعیت بازار کار ایران تحلیل کن
+6. از اسم ${nickname} در مکالمه استفاده کن
+7. اگه سوال خارج از حوزه مسیر شغلی و AI بود، بگو که در این حوزه تخصص داری و هدایت کن
+8. پیشنهادات رو با مثال واقعی یا گام عملی همراه کن`;
 
   return ctx;
 }
 
-// Mock response for when Metis key is not configured
+/* ──────────────────────────────────────────────────────────────────
+   FREE MODE SYSTEM PROMPT (minimal)
+─────────────────────────────────────────────────────────────────── */
+const FREE_SYSTEM_PROMPT = `تو یک دستیار هوشمند هستی. فارسی روان، مستقیم و بدون تعریف بیجا پاسخ بده. به هر موضوعی که کاربر بخواد کمک کن.`;
+
+/* ──────────────────────────────────────────────────────────────────
+   MOCK STREAM (no API key)
+─────────────────────────────────────────────────────────────────── */
 async function* mockStream(userMessage: string): AsyncGenerator<string> {
-  const responses = [
-    `سلام! من مسیریاب AI هستم. متأسفانه کلید API متیس هنوز تنظیم نشده.`,
-    ` برای فعال‌سازی کامل، METIS_API_KEY رو در .env.local تنظیم کن.`,
-    ` سؤالت رو شنیدم: "${userMessage.slice(0, 50)}..."`,
+  const chunks = [
+    `سلام! من دستیار AI هستم. `,
+    `متأسفانه کلید API متیس هنوز تنظیم نشده. `,
+    `برای فعال‌سازی، METIS_API_KEY رو در .env.local تنظیم کن. `,
+    `سؤالت: "${userMessage.slice(0, 60)}..."`,
   ];
-  for (const chunk of responses) {
+  for (const chunk of chunks) {
     yield chunk;
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 80));
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────
+   PERSIST helper
+─────────────────────────────────────────────────────────────────── */
+async function persistMessages(
+  conversationId: string,
+  userId: string,
+  userContent: string,
+  assistantContent: string
+) {
+  try {
+    await pool.query(
+      `INSERT INTO chat_messages (conversation_id, user_id, role, content)
+       VALUES ($1, $2, 'user', $3), ($1, $2, 'assistant', $4)`,
+      [conversationId, userId, userContent, assistantContent]
+    );
+    // bump updated_at
+    await pool.query(
+      "UPDATE chat_conversations SET updated_at=now() WHERE id=$1",
+      [conversationId]
+    );
+  } catch (e) {
+    console.error("persist chat messages error:", e);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   HANDLER
+─────────────────────────────────────────────────────────────────── */
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
@@ -85,45 +134,59 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const messages: ChatMessage[] = body.messages ?? [];
+    const mode: "career" | "free"   = body.mode === "free" ? "free" : "career";
+    const conversationId: string | null = body.conversationId ?? null;
 
     if (!messages.length) {
       return NextResponse.json({ error: "no messages" }, { status: 400 });
     }
 
-    // Fetch profile + latest analysis
-    const [profileRes, analysisRes] = await Promise.all([
-      pool.query("SELECT * FROM profiles WHERE user_id=$1", [session.id]),
-      pool.query(
-        "SELECT result_json FROM analyses WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1",
-        [session.id]
-      ),
-    ]);
+    // Last user message (for mock + persistence)
+    const lastUserMsg = messages.filter((m) => m.role === "user").pop()?.content ?? "";
 
-    const profile  = profileRes.rows[0] ?? {};
-    const analysis = analysisRes.rows[0]?.result_json ?? null;
+    let systemPrompt: string;
+
+    if (mode === "career") {
+      // Fetch profile + latest analysis
+      const [profileRes, analysisRes] = await Promise.all([
+        pool.query("SELECT * FROM profiles WHERE user_id=$1", [session.id]),
+        pool.query(
+          "SELECT result_json FROM analyses WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1",
+          [session.id]
+        ).catch(() => ({ rows: [] })),
+      ]);
+      const profile  = profileRes.rows[0] ?? {};
+      const analysis = analysisRes.rows[0]?.result_json ?? null;
+      systemPrompt = buildCareerSystemPrompt(profile, analysis);
+    } else {
+      systemPrompt = FREE_SYSTEM_PROMPT;
+    }
 
     // Log usage (non-blocking)
     pool.query(
       `INSERT INTO usage_logs (user_id, type, metadata) VALUES ($1, 'chat_message', $2)`,
-      [session.id, JSON.stringify({ messages_count: messages.length })]
+      [session.id, JSON.stringify({ mode, messages_count: messages.length })]
     ).catch(() => {});
 
-    // Build messages array with system prompt
     const fullMessages: ChatMessage[] = [
-      { role: "system", content: buildSystemPrompt(profile, analysis) },
-      ...messages.slice(-20), // keep last 20 messages for context window
+      { role: "system", content: systemPrompt },
+      ...messages.slice(-30),
     ];
 
-    // If Metis key not configured → mock stream
+    // ── MOCK (no API key) ─────────────────────────────────────────
     if (!METIS_KEY || METIS_KEY === "mock") {
-      const lastUserMsg = messages.filter((m) => m.role === "user").pop()?.content ?? "";
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         async start(controller) {
+          let accumulated = "";
           for await (const chunk of mockStream(lastUserMsg)) {
+            accumulated += chunk;
             controller.enqueue(encoder.encode(chunk));
           }
           controller.close();
+          if (conversationId) {
+            await persistMessages(conversationId, session.id, lastUserMsg, accumulated);
+          }
         },
       });
       return new Response(stream, {
@@ -134,7 +197,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Real Metis streaming request
+    // ── REAL METIS REQUEST ────────────────────────────────────────
     const metisRes = await fetch(`${METIS_BASE}/chat/completions`, {
       method: "POST",
       headers: {
@@ -144,7 +207,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: MODEL,
         stream: true,
-        max_tokens: 1024,
+        max_tokens: 1500,
         messages: fullMessages,
       }),
     });
@@ -158,7 +221,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse SSE stream from Metis and forward plain text chunks
     const reader  = metisRes.body!.getReader();
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
@@ -166,6 +228,7 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         let buffer = "";
+        let accumulated = "";
         try {
           while (true) {
             const { done, value } = await reader.read();
@@ -179,21 +242,25 @@ export async function POST(req: NextRequest) {
               const trimmed = line.trim();
               if (!trimmed || trimmed === "data: [DONE]") continue;
               if (!trimmed.startsWith("data: ")) continue;
-
               try {
                 const json = JSON.parse(trimmed.slice(6));
                 const content = json.choices?.[0]?.delta?.content;
                 if (content) {
+                  accumulated += content;
                   controller.enqueue(encoder.encode(content));
                 }
               } catch {
-                // ignore parse errors on individual SSE lines
+                // ignore parse errors
               }
             }
           }
         } finally {
           controller.close();
           reader.releaseLock();
+          // Persist after streaming is fully done
+          if (conversationId && accumulated) {
+            await persistMessages(conversationId, session.id, lastUserMsg, accumulated);
+          }
         }
       },
     });

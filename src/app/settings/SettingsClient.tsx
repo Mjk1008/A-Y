@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, Bell, Shield, Trash2, Download,
-  ChevronLeft, User, CreditCard, HelpCircle, LogOut, Check
+  ChevronLeft, User, CreditCard, HelpCircle, LogOut, Check, MessageSquare
 } from "lucide-react";
 import { BottomNav } from "@/app/components/BottomNav";
+import { useTheme } from "@/app/components/ThemeProvider";
+import { THEMES, type ThemeKey } from "@/lib/themes";
 
 interface Props {
   user: { phone: string; plan_type: string; created_at: string };
@@ -70,14 +72,120 @@ function NavRow({ icon: Icon, label, sub, href, danger }: {
   );
 }
 
+function ThemeTile({ themeKey, active, onSelect }: { themeKey: ThemeKey; active: boolean; onSelect: () => void }) {
+  const t = THEMES[themeKey];
+  return (
+    <button
+      onClick={onSelect}
+      style={{
+        background: active ? t.accentBg : "rgba(255,255,255,0.03)",
+        border: active ? `1.5px solid ${t.accentBorder}` : "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 14,
+        padding: 10,
+        cursor: "pointer",
+        textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 6,
+        boxShadow: active ? `0 0 0 2px ${t.accent}55` : "none",
+        transition: "all 0.18s",
+        width: "100%",
+      }}
+    >
+      {/* Preview rect */}
+      <div
+        style={{
+          width: "100%",
+          height: 72,
+          borderRadius: 8,
+          background: `linear-gradient(180deg, ${t.tileColors[0]} 0%, ${t.tileColors[1]} 100%)`,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* Accent line at 60% */}
+        <div
+          style={{
+            position: "absolute",
+            top: "60%",
+            left: 0,
+            right: 0,
+            height: 1,
+            background: `linear-gradient(90deg, transparent, ${t.tileColors[2]}88, transparent)`,
+          }}
+        />
+        {/* Center-bottom accent dot */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 6,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 4,
+            height: 4,
+            borderRadius: 1,
+            background: t.tileColors[2],
+            opacity: 0.9,
+          }}
+        />
+      </div>
+
+      {/* Label */}
+      <span
+        style={{
+          fontWeight: 800,
+          fontSize: 13,
+          color: active ? t.accent : "#e8efea",
+          display: "block",
+        }}
+      >
+        {t.label}
+      </span>
+
+      {/* Desc */}
+      <span
+        style={{
+          fontSize: 10,
+          color: "rgba(232,239,234,0.45)",
+          lineHeight: 1.4,
+          display: "block",
+        }}
+      >
+        {t.desc}
+      </span>
+
+      {/* Active checkmark */}
+      {active && (
+        <div
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: "50%",
+            background: t.accent,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Check style={{ width: 12, height: 12, color: t.accentText }} />
+        </div>
+      )}
+    </button>
+  );
+}
+
 export default function SettingsClient({ user, prefs: initialPrefs }: Props) {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const [prefs, setPrefs] = useState(initialPrefs);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
+  const [resettingChat, setResettingChat] = useState(false);
+  const [chatReset, setChatReset] = useState(false);
 
   async function updatePref(key: string, value: boolean) {
     const next = { ...prefs, [key]: value };
@@ -91,6 +199,14 @@ export default function SettingsClient({ user, prefs: initialPrefs }: Props) {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function handleResetChat() {
+    setResettingChat(true);
+    await fetch("/api/conversations/reset", { method: "DELETE" });
+    setResettingChat(false);
+    setChatReset(true);
+    setTimeout(() => setChatReset(false), 3000);
   }
 
   async function handleLogout() {
@@ -160,6 +276,23 @@ export default function SettingsClient({ user, prefs: initialPrefs }: Props) {
           />
         </Section>
 
+        {/* Theme */}
+        <Section title="ظاهر">
+          <div className="px-5 py-4">
+            <p className="mb-3 text-sm font-semibold" style={{ color: "#e8efea" }}>تم</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              {(["dark", "cream", "sky"] as ThemeKey[]).map((key) => (
+                <ThemeTile
+                  key={key}
+                  themeKey={key}
+                  active={theme.key === key}
+                  onSelect={() => setTheme(key)}
+                />
+              ))}
+            </div>
+          </div>
+        </Section>
+
         {/* Notifications */}
         <Section title="اعلان‌ها">
           {[
@@ -198,6 +331,23 @@ export default function SettingsClient({ user, prefs: initialPrefs }: Props) {
         >
           خروج از حساب
         </button>
+
+        {/* Chat context reset */}
+        <Section title="مکالمات">
+          <div className="px-5 py-4">
+            <p className="mb-3 text-sm text-ink-400">
+              ریست کانتکست تمام تاریخچه مکالمات چت (مسیریاب و آزاد) رو حذف می‌کنه. تحلیل‌ها و پروفایل دست نخورده می‌مونن.
+            </p>
+            <button
+              onClick={handleResetChat}
+              disabled={resettingChat}
+              className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2 text-sm text-amber-400 transition hover:bg-amber-500/10 disabled:opacity-40"
+            >
+              <MessageSquare className="h-4 w-4" />
+              {resettingChat ? "در حال پاک‌سازی..." : chatReset ? "✓ مکالمات پاک شدن" : "ریست تاریخچه چت"}
+            </button>
+          </div>
+        </Section>
 
         {/* Danger zone */}
         <Section title="منطقه خطر">

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@fontsource-variable/vazirmatn";
 import LenisProvider from "./components/LenisProvider";
+import { ThemeProvider } from "@/app/components/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "A-Y | ای‌وای — استاد AI شو، نه قربانی",
@@ -16,15 +18,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fa" dir="rtl">
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://cdn.fontcdn.ir/Font/Persian/Peyda/Peyda.css"
-        />
-      </head>
-      <body className="min-h-screen" style={{ fontFamily: "'Peyda', 'Vazirmatn', system-ui, sans-serif", background: "#020306", color: "#e8efea" }}>
+      <head />
+      <body className="min-h-screen" style={{ fontFamily: "'Vazirmatn Variable', 'Vazirmatn', system-ui, sans-serif", background: "#020306", color: "#e8efea" }}>
         <LenisProvider />
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
