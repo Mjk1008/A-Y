@@ -1,0 +1,12 @@
+design-bundle/
+design-bundle2-raw.html
+design-new.html
+.design-import/
+.netlify/
+.claude/
+docs/
+SKILL.md
+download-fonts.mjs
+tsconfig.tsbuildinfo
+*.napkin
+package-lock.json
