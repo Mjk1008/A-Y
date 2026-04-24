@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -7,7 +8,7 @@ import { AYScene } from "@/app/components/AYScene";
 
 const PLAN_NAMES: Record<string, string> = { pro: "پرو", max: "مکس" };
 
-export default function PaymentSuccessPage() {
+function SuccessContent() {
   const params = useSearchParams();
   const ref  = params.get("ref") || "";
   const plan = params.get("plan") || "pro";
@@ -48,5 +49,16 @@ export default function PaymentSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center"
+        style={{ background: "#020306" }} />
+    }>
+      <SuccessContent />
+    </Suspense>
   );
 }

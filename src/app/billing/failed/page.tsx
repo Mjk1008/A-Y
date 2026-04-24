@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw } from "lucide-react";
@@ -11,7 +12,7 @@ const REASONS: Record<string, string> = {
   invalid_plan: "پلن انتخابی نامعتبره.",
 };
 
-export default function PaymentFailedPage() {
+function FailedContent() {
   const params = useSearchParams();
   const reason = params.get("reason") || "cancelled";
 
@@ -38,5 +39,16 @@ export default function PaymentFailedPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function PaymentFailedPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center"
+        style={{ background: "#020306" }} />
+    }>
+      <FailedContent />
+    </Suspense>
   );
 }

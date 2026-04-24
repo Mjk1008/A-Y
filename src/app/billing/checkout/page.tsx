@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Crown, Zap, Check, Loader2, Tag } from "lucide-react";
@@ -30,7 +30,7 @@ const PLANS = [
   },
 ];
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter();
   const params = useSearchParams();
   const defaultPlan = params.get("plan") || "pro";
@@ -46,7 +46,6 @@ export default function CheckoutPage() {
   const finalPrice = Math.round(plan.price * (1 - discount / 100));
 
   async function applyPromo() {
-    // Client-side optimistic check — real check happens server-side
     if (promo.toUpperCase() === "LAUNCH50") {
       setDiscount(50);
       setPromoApplied(true);
@@ -70,7 +69,6 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "خطا در ایجاد پرداخت"); setLoading(false); return; }
-      // Redirect to Zarinpal gateway
       window.location.href = data.gatewayUrl;
     } catch {
       setError("خطای شبکه — دوباره تلاش کن");
@@ -91,7 +89,6 @@ export default function CheckoutPage() {
       </div>
 
       <div className="mx-auto max-w-lg space-y-4 px-4 py-6">
-        {/* Plan selector */}
         {PLANS.map((p) => {
           const Icon = p.icon;
           const isSelected = selected === p.id;
@@ -214,5 +211,16 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center"
+        style={{ background: "#020306" }} />
+    }>
+      <CheckoutContent />
+    </Suspense>
   );
 }
