@@ -1,61 +1,83 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, ChevronDown, MessageCircle, Mail, ExternalLink } from "lucide-react";
+import { Search, ChevronDown, Plus, Send, Mail, Clock } from "lucide-react";
 import { BottomNav } from "@/app/components/BottomNav";
 
 const FAQS = [
   {
-    q: "چطور تحلیل شغلی‌ام شروع می‌شه؟",
-    a: "بعد از ثبت‌نام، وارد صفحه پروفایل بشو و اطلاعاتت رو کامل کن. بعد از ذخیره، تحلیل هوش مصنوعی به صورت خودکار آماده می‌شه — معمولاً کمتر از ۳۰ ثانیه.",
+    q: "A-Y چطور کار می‌کنه؟",
+    a: "شغل و مهارت‌هات رو می‌گیره، با مدل‌های زبانی تحلیل می‌کنه و دقیقاً می‌گه کدوم ابزار AI رو، با چه ترتیبی، توی چه زمانی یاد بگیری تا توی شغلت جا نمونی.",
   },
   {
-    q: "تفاوت پلن رایگان و پرو چیه؟",
-    a: "پلن رایگان یک تحلیل در هفته و ۳ ابزار پیشنهادی داره. پلن پرو ۵ تحلیل در هفته، مسیریاب AI (چت‌بات)، ۲۰ شغل مچ‌شده روزانه و مدل هوشمندتر داره. پلن مکس همه چیز رو نامحدود می‌کنه.",
+    q: "تحلیل چند دقیقه طول می‌کشه؟",
+    a: "معمولاً کمتر از ۳۰ ثانیه. بعد از ذخیره پروفایل، تحلیل به صورت خودکار آماده می‌شه و روی داشبورد نمایش داده می‌شه.",
   },
   {
-    q: "مسیریاب AI چیه و چطور کار می‌کنه؟",
-    a: "مسیریاب یه چت‌بات تخصصی‌ه که اطلاعات پروفایل تو رو می‌دونه. می‌تونی ازش بپرسی چطور مهارتی رو یاد بگیری، CV رو بهتر بنویسی یا برای مصاحبه آماده بشی. فقط در پلن پرو و مکس دسترس داری.",
-  },
-  {
-    q: "آیا اطلاعاتم امنه؟",
+    q: "آیا داده‌هام پیش شما امنه؟",
     a: "بله. اطلاعات تو روی سرور ایمن ذخیره می‌شه و هرگز با اشخاص ثالث به اشتراک گذاشته نمی‌شه. می‌تونی هر زمان داده‌هات رو export کنی یا حسابت رو کامل حذف کنی.",
   },
   {
-    q: "چطور اشتراکم رو لغو کنم؟",
-    a: "از بخش تنظیمات → اشتراک، می‌تونی اشتراکت رو لغو کنی. بعد از لغو، دسترسی‌هات تا پایان دوره پرداختی‌شده ادامه داره.",
+    q: "چطور پلنم رو ارتقا بدم یا کنسل کنم؟",
+    a: "از بخش اشتراک → مدیریت، می‌تونی ارتقا بدی یا کنسل کنی. بعد از کنسل، دسترسی‌هات تا پایان دوره پرداختی‌شده ادامه داره.",
   },
   {
-    q: "اگه ابزاری پیشنهادی مناسب نبود چیکار کنم؟",
-    a: "می‌تونی پروفایلت رو آپدیت کنی تا تحلیل جدیدی دریافت کنی. همچنین از طریق پشتیبانی بهمون بگو تا بهبودش بدیم — فیدبکت برامون خیلی ارزشمنده.",
+    q: "چه ابزارهایی رو پوشش می‌دید؟",
+    a: "بیش از ۲۰۰ ابزار AI — از ChatGPT و Claude تا ابزارهای تخصصی حوزه‌های مختلف مثل طراحی، کدنویسی، مارکتینگ، حقوق و مالی.",
   },
   {
-    q: "چطور داده‌هام رو دانلود کنم؟",
-    a: "از تنظیمات → دانلود داده‌هام، یه فایل JSON از همه اطلاعاتت (پروفایل، تحلیل‌ها، تاریخچه) آماده می‌کنیم.",
+    q: "بدون پرداخت چقدر می‌تونم استفاده کنم؟",
+    a: "پلن رایگان شامل ۱ تحلیل در هفته، ۳ ابزار پیشنهادی و یک بار تولید نقشه راه می‌شه. برای دسترسی بیشتر، پلن پرو رو امتحان کن.",
   },
   {
-    q: "پرداخت با چه روش‌هایی انجام می‌شه؟",
-    a: "پرداخت از طریق درگاه زرین‌پال با تمام کارت‌های شبکه شتاب انجام می‌شه. پرداخت ارزی فعلاً پشتیبانی نمی‌شه.",
+    q: "فاکتور پرداخت رو از کجا بگیرم؟",
+    a: "از بخش اشتراک → تاریخچه پرداخت‌ها، می‌تونی جزئیات هر تراکنش رو ببینی. برای فاکتور رسمی با ما تماس بگیر.",
+  },
+  {
+    q: "برای تیم‌ها هم پلن دارید؟",
+    a: "فعلاً پلن تیمی در دست توسعه‌ست. اگه سازمانت نیاز داره، با ما از طریق تلگرام یا ایمیل در تماس باش.",
   },
 ];
 
-function FAQItem({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false);
+function FAQItem({ q, a, defaultOpen = false }: { q: string; a?: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-white/[0.06] last:border-0">
+    <div style={{
+      borderRadius: 14, marginBottom: 8, overflow: "hidden",
+      background: "rgba(31,46,40,0.55)",
+      border: `1px solid ${open ? "rgba(110,231,183,0.22)" : "rgba(110,231,183,0.10)"}`,
+      transition: "border-color 0.2s",
+    }}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-right transition hover:bg-white/[0.02]"
+        style={{
+          width: "100%", padding: "14px 16px",
+          display: "flex", alignItems: "center", gap: 12,
+          background: "none", border: "none", cursor: "pointer", textAlign: "right",
+          direction: "rtl",
+        }}
       >
-        <span className="text-sm font-medium leading-relaxed">{q}</span>
-        <ChevronDown
-          className={`h-4 w-4 shrink-0 text-ink-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-        />
+        <div style={{
+          flex: 1, fontWeight: open ? 800 : 600, fontSize: 13.5,
+          color: open ? "#6ee7b7" : "#e8efea", lineHeight: 1.4,
+          fontFamily: "inherit",
+        }}>{q}</div>
+        <div style={{
+          width: 24, height: 24, borderRadius: 7, flexShrink: 0,
+          background: open ? "rgba(16,185,129,0.18)" : "rgba(255,255,255,0.04)",
+          display: "grid", placeItems: "center",
+          transition: "background 0.2s",
+        }}>
+          {open ? (
+            <ChevronDown size={12} color="#6ee7b7" strokeWidth={2.2} />
+          ) : (
+            <Plus size={12} color="rgba(232,239,234,0.55)" strokeWidth={2.2} />
+          )}
+        </div>
       </button>
-      {open && (
-        <div className="px-5 pb-4">
-          <p className="text-sm leading-relaxed text-ink-400">{a}</p>
+      {open && a && (
+        <div style={{ padding: "0 16px 14px", borderTop: "1px solid rgba(110,231,183,0.08)" }}>
+          <p style={{ margin: "12px 0 0", fontSize: 12.5, color: "rgba(232,239,234,0.7)", lineHeight: 1.8 }}>{a}</p>
         </div>
       )}
     </div>
@@ -63,75 +85,144 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function HelpPage() {
+  const [search, setSearch] = useState("");
+
+  const filtered = FAQS.filter(
+    (f) => !search || f.q.includes(search) || (f.a && f.a.includes(search))
+  );
+
   return (
-    <div className="min-h-screen pb-28" style={{ background: "#020306", color: "#e8efea" }}>
+    <div style={{
+      minHeight: "100dvh", paddingBottom: 110,
+      background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(16,185,129,0.06), transparent 60%), #020306",
+      color: "#e8efea",
+    }}>
       <BottomNav />
-      {/* Header */}
-      <div
-        className="sticky top-0 z-30 border-b border-white/[0.06]"
-        style={{ background: "rgba(2,3,6,0.85)", backdropFilter: "blur(14px)" }}
-      >
-        <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
-          <Link href="/dashboard" className="rounded-lg p-1.5 text-ink-400 transition hover:text-ink-100">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <h1 className="text-base font-bold">راهنما و سوالات متداول</h1>
-        </div>
+
+      {/* top bar */}
+      <div style={{
+        position: "sticky", top: 0, zIndex: 30,
+        padding: "22px 20px 12px",
+        background: "linear-gradient(180deg, rgba(2,3,6,0.92) 0%, rgba(2,3,6,0.0) 100%)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.2 }}>راهنما</div>
       </div>
 
-      <div className="mx-auto max-w-lg space-y-6 px-4 py-6">
-        {/* Intro */}
-        <div className="text-center">
-          <div className="mb-3 text-4xl">🤖</div>
-          <h2 className="mb-1 text-lg font-black">چطور می‌تونیم کمک کنیم؟</h2>
-          <p className="text-sm text-ink-500">جواب بیشتر سوالا اینجاست. اگه پیدا نکردی، پیام بده.</p>
+      <div style={{ padding: "12px 20px", maxWidth: 448, margin: "0 auto" }}>
+
+        {/* search */}
+        <div style={{
+          padding: "12px 14px", borderRadius: 14, marginBottom: 18,
+          background: "rgba(31,46,40,0.55)", border: "1px solid rgba(110,231,183,0.16)",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <Search size={16} color="rgba(110,231,183,0.7)" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="جست‌وجو در سؤال‌های متداول…"
+            style={{
+              flex: 1, background: "none", border: "none", outline: "none",
+              fontSize: 13, color: "#e8efea", fontFamily: "inherit",
+              caretColor: "#34d399",
+            }}
+          />
         </div>
 
-        {/* FAQ Accordion */}
-        <div className="glass overflow-hidden rounded-2xl">
-          {FAQS.map((item, i) => (
-            <FAQItem key={i} q={item.q} a={item.a} />
-          ))}
+        {/* section label */}
+        <div style={{
+          fontFamily: "monospace", fontSize: 10, letterSpacing: 2,
+          color: "rgba(110,231,183,0.7)", textTransform: "uppercase", marginBottom: 8,
+        }}>
+          سؤال‌های متداول · {filtered.length}
         </div>
 
-        {/* Support contact */}
-        <div className="glass rounded-2xl p-5">
-          <h3 className="mb-4 text-sm font-bold text-ink-300">هنوز سوال داری؟</h3>
-          <div className="space-y-3">
-            <a
-              href="https://t.me/ay_support"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition hover:bg-white/[0.04]"
-            >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/15">
-                <MessageCircle className="h-4 w-4 text-blue-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">تلگرام پشتیبانی</p>
-                <p className="text-xs text-ink-500">@ay_support — پاسخ سریع</p>
-              </div>
-              <ExternalLink className="h-4 w-4 text-ink-600" />
-            </a>
-
-            <a
-              href="mailto:support@ay.app"
-              className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition hover:bg-white/[0.04]"
-            >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15">
-                <Mail className="h-4 w-4 text-emerald-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">ایمیل</p>
-                <p className="text-xs text-ink-500">support@ay.app — تا ۴۸ ساعت</p>
-              </div>
-              <ExternalLink className="h-4 w-4 text-ink-600" />
-            </a>
+        {/* FAQ list */}
+        {filtered.length > 0 ? (
+          filtered.map((f, i) => (
+            <FAQItem key={i} q={f.q} a={f.a} defaultOpen={i === 0 && !search} />
+          ))
+        ) : (
+          <div style={{
+            padding: "32px 16px", borderRadius: 14, textAlign: "center",
+            background: "rgba(31,46,40,0.4)", border: "1px solid rgba(110,231,183,0.08)",
+            fontSize: 13, color: "rgba(232,239,234,0.5)",
+          }}>
+            نتیجه‌ای پیدا نشد. سؤالت رو از طریق پشتیبانی بپرس.
           </div>
+        )}
+
+        {/* contact section */}
+        <h3 style={{ margin: "24px 0 12px", fontWeight: 800, fontSize: 16 }}>هنوز سؤال داری؟</h3>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          {/* Telegram */}
+          <a
+            href="https://t.me/ay_support"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              padding: 16, borderRadius: 16, textAlign: "center",
+              background: "linear-gradient(180deg, rgba(56,189,248,0.10), rgba(56,189,248,0.02))",
+              border: "1px solid rgba(56,189,248,0.28)",
+              textDecoration: "none", display: "block",
+            }}
+          >
+            <div style={{
+              width: 44, height: 44, borderRadius: 12, margin: "0 auto 10px",
+              background: "rgba(56,189,248,0.18)", display: "grid", placeItems: "center",
+            }}>
+              <Send size={20} color="#67e8f9" strokeWidth={1.8} />
+            </div>
+            <div style={{ fontWeight: 800, fontSize: 13, color: "#67e8f9" }}>تلگرام</div>
+            <div style={{ fontFamily: "monospace", fontSize: 10.5, color: "rgba(232,239,234,0.55)", marginTop: 4 }}>@ay_support</div>
+            <div style={{
+              marginTop: 10, padding: "8px 0", borderRadius: 10,
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(56,189,248,0.18)",
+              fontSize: 12, fontWeight: 700, color: "rgba(232,239,234,0.7)",
+            }}>پیام بده</div>
+          </a>
+
+          {/* Email */}
+          <a
+            href="mailto:hi@a-y.app"
+            style={{
+              padding: 16, borderRadius: 16, textAlign: "center",
+              background: "linear-gradient(180deg, rgba(16,185,129,0.10), rgba(16,185,129,0.02))",
+              border: "1px solid rgba(110,231,183,0.28)",
+              textDecoration: "none", display: "block",
+            }}
+          >
+            <div style={{
+              width: 44, height: 44, borderRadius: 12, margin: "0 auto 10px",
+              background: "rgba(16,185,129,0.18)", display: "grid", placeItems: "center",
+            }}>
+              <Mail size={20} color="#6ee7b7" strokeWidth={1.8} />
+            </div>
+            <div style={{ fontWeight: 800, fontSize: 13, color: "#6ee7b7" }}>ایمیل</div>
+            <div style={{ fontFamily: "monospace", fontSize: 10.5, color: "rgba(232,239,234,0.55)", marginTop: 4 }}>hi@a-y.app</div>
+            <div style={{
+              marginTop: 10, padding: "8px 0", borderRadius: 10,
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(110,231,183,0.18)",
+              fontSize: 12, fontWeight: 700, color: "rgba(232,239,234,0.7)",
+            }}>بفرست</div>
+          </a>
         </div>
 
-        {/* Version */}
-        <p className="text-center text-xs text-ink-700">نسخه ۱.۰.۰ · ساخته شده با ❤️ برای کارجوی ایرانی</p>
+        {/* hours */}
+        <div style={{
+          padding: 14, borderRadius: 14, marginBottom: 8,
+          background: "rgba(255,255,255,0.02)", border: "1px solid rgba(110,231,183,0.08)",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <Clock size={14} color="rgba(110,231,183,0.7)" />
+          <span style={{ flex: 1, fontSize: 11.5, color: "rgba(232,239,234,0.6)" }}>
+            ساعت پاسخ‌گویی: شنبه تا چهارشنبه، ۹ صبح تا ۶ عصر
+          </span>
+        </div>
+
       </div>
     </div>
   );
