@@ -5,25 +5,25 @@ import { pool } from "@/lib/db";
 import type { AnalysisResult } from "@/lib/claude";
 import {
   Sparkles,
-  Target,
-  Zap,
-  TrendingUp,
-  Shield,
+  Briefcase,
+  GraduationCap,
+  MessageCircle,
+  Map,
+  Wrench,
   ArrowLeft,
-  ExternalLink,
-  Clock,
-  BarChart3,
-  Lightbulb,
-  Award,
   AlertTriangle,
+  User,
+  Settings,
+  CreditCard,
+  ChevronLeft,
+  Crown,
+  Zap,
+  Gamepad2,
 } from "lucide-react";
 import { DashboardClient } from "./DashboardClient";
-
-type Analysis = {
-  id: string;
-  result_json: AnalysisResult;
-  created_at: string;
-};
+import { BottomNav } from "@/app/components/BottomNav";
+import { LogoStatic } from "@/app/components/Logo";
+import { PLANS } from "@/app/config/plans";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -36,322 +36,492 @@ export default async function DashboardPage() {
   if (profileRes.rows.length === 0) redirect("/onboarding");
 
   const profile = profileRes.rows[0];
+  const plan = session.plan ?? "free";
+  const planDef = PLANS.find((p) => p.id === plan) ?? PLANS[0];
+  const isPro = plan === "pro" || plan === "max";
+  const isMax = plan === "max";
 
-  const latestRes = await pool.query(
-    "SELECT * FROM analyses WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1",
-    [session.id]
-  );
-  const latest: Analysis | null = latestRes.rows[0] ?? null;
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  weekStart.setHours(0, 0, 0, 0);
 
-  if (!latest) {
-    return (
-      <div className="flex min-h-[100dvh] items-center justify-center px-6">
-        <div className="card max-w-md w-full text-center">
-          <Sparkles className="mx-auto mb-4 h-8 w-8 text-brand-400" />
-          <h2 className="mb-2 text-lg font-bold">هنوز تحلیلی نداریم</h2>
-          <p className="mb-6 text-sm text-ink-400">
-            بریم پروفایلت رو کامل کنیم.
-          </p>
-          <Link href="/onboarding" className="btn-primary">
-            شروع تحلیل
-          </Link>
-        </div>
-      </div>
-    );
+  const [latestRes, analysesUsedRes, jobCountRes, courseCountRes, subRes, progressRes] =
+    await Promise.all([
+      pool.query(
+        "SELECT id, result_json, created_at FROM analyses WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1",
+        [session.id]
+      ),
+      pool
+        .query(
+          `SELECT COUNT(*) FROM usage_logs WHERE user_id=$1 AND type='analysis' AND created_at>=$2`,
+          [session.id, weekStart]
+        )
+        .catch(() => ({ rows: [{ count: "0" }] })),
+      pool
+        .query(
+          "SELECT COUNT(*) FROM crawled_jobs WHERE crawled_at >= NOW() - INTERVAL '7 days'"
+        )
+        .catch(() => ({ rows: [{ count: "0" }] })),
+      pool
+        .query("SELECT COUNT(*) FROM crawled_courses")
+        .catch(() => ({ rows: [{ count: "0" }] })),
+      pool
+        .query(
+          `SELECT * FROM subscriptions WHERE user_id=$1 AND status IN ('active','cancelled') ORDER BY created_at DESC LIMIT 1`,
+          [session.id]
+        )
+        .catch(() => ({ rows: [] })),
+      pool
+        .query(
+          `SELECT
+            COUNT(*) FILTER (WHERE completed) AS done,
+            COUNT(*) AS total
+           FROM roadmap_progress WHERE user_id=$1`,
+          [session.id]
+        )
+        .catch(() => ({ rows: [{ done: "0", total: "0" }] })),
+    ]);
+
+  const latest = latestRes.rows[0] ?? null;
+  const analysesUsed = parseInt(analysesUsedRes.rows[0]?.count ?? "0", 10);
+  const jobCount = parseInt(jobCountRes.rows[0]?.count ?? "0", 10);
+  const courseCount = parseInt(courseCountRes.rows[0]?.count ?? "0", 10);
+  const subscription = subRes.rows[0] ?? null;
+  const progressDone = parseInt(progressRes.rows[0]?.done ?? "0", 10);
+  const progressTotal = parseInt(progressRes.rows[0]?.total ?? "0", 10);
+
+  let daysLeft: number | null = null;
+  let isNearExpiry = false;
+  if (subscription?.expires_at) {
+    const diff = new Date(subscription.expires_at).getTime() - Date.now();
+    daysLeft = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    isNearExpiry = daysLeft <= 7;
   }
 
-  const r = latest.result_json;
-  const isPro = session.plan === "pro";
+  const r = latest?.result_json as AnalysisResult | null;
+  // Use nickname if set, otherwise first name
+  const firstName =
+    (profile.nickname as string | null) ??
+    profile.full_name?.split(" ")[0] ??
+    "کاربر";
 
   return (
-    <div className="min-h-[100dvh] pb-20">
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-40 border-b border-ink-700/40 bg-ink-900/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-xs font-black text-white">
-              AY
-            </div>
-            <span className="text-sm font-bold tracking-tight">ای‌وای</span>
-          </Link>
+    <div className="min-h-[100dvh] pb-28" style={{ background: "#020306", color: "#e8efea" }}>
+      <DashboardHeader plan={plan} isPro={isPro} isMax={isMax} />
+      <BottomNav />
 
-          <div className="flex items-center gap-3">
-            {!isPro && (
-              <Link
-                href="/upgrade"
-                className="hidden items-center gap-1.5 rounded-xl border border-brand-500/30 bg-brand-500/8 px-4 py-2 text-xs font-medium text-brand-400 transition hover:border-brand-500/50 sm:inline-flex"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                ارتقا به Pro
-              </Link>
-            )}
-            <DashboardClient />
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-6 pt-10">
+      <main className="mx-auto max-w-md px-5 pt-6">
         {/* ── Greeting ── */}
-        <div className="mb-10">
-          <p className="mb-1 text-xs text-ink-500">سلام،</p>
-          <h1 className="text-3xl font-black tracking-tight">
-            {profile.full_name}
+        <div className="mb-6">
+          <p className="text-[11px] text-ink-600">
+            {new Date().toLocaleDateString("fa-IR", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+          <h1 className="mt-1 text-[1.65rem] font-black tracking-tight">
+            سلام {firstName} 👋
           </h1>
-          <p className="mt-1 text-sm text-ink-400">
-            {profile.job_title} — {profile.industry}
+          <p className="mt-0.5 text-sm text-ink-400">
+            {profile.job_title
+              ? `${profile.job_title}${profile.industry ? ` · ${profile.industry}` : ""}`
+              : "مسیر حرفه‌ای هوشمند تو"}
           </p>
         </div>
 
-        {/* ── Summary card ── */}
-        <section className="mb-8 rounded-2xl border border-ink-700/60 bg-ink-800/30 p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-brand-400" />
-            <h2 className="text-sm font-semibold text-ink-300">خلاصه تحلیل</h2>
-          </div>
-
-          <p className="mb-6 text-base leading-relaxed text-ink-100">
-            {r.analysis_summary}
-          </p>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Risk */}
-            <div className="rounded-xl border border-ink-700/60 bg-ink-900/40 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <Shield className="h-4 w-4 text-ink-400" />
-                <span className="text-xs font-medium text-ink-400">
-                  سطح ریسک جایگزینی
-                </span>
-              </div>
-              <RiskBadge level={r.risk_level} />
-              <p className="mt-3 text-sm leading-relaxed text-ink-400">
-                {r.risk_explanation}
-              </p>
-            </div>
-
-            {/* Leverage */}
-            <div className="rounded-xl border border-brand-500/20 bg-brand-500/5 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <Award className="h-4 w-4 text-brand-400" />
-                <span className="text-xs font-medium text-brand-400">
-                  ایده اهرم شخصی
-                </span>
-              </div>
-              <p className="text-sm leading-relaxed text-ink-200">
-                {r.leverage_idea}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Tools ── */}
-        <section className="mb-8">
-          <div className="mb-5">
-            <h2 className="text-xl font-bold tracking-tight">
-              ابزارهای پیشنهادی
-            </h2>
-            <p className="mt-1 text-sm text-ink-500">
-              بر اساس شغل {profile.job_title} و مهارت‌های تو
+        {/* ── Expiry warning ── */}
+        {isNearExpiry && daysLeft !== null && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/[0.08] px-4 py-3">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-yellow-400" />
+            <p className="flex-1 text-sm text-yellow-300">
+              {daysLeft === 0
+                ? "اشتراکت امروز تموم می‌شه!"
+                : `${daysLeft.toLocaleString("fa-IR")} روز تا پایان اشتراک`}
             </p>
+            <Link
+              href="/billing/checkout"
+              className="shrink-0 rounded-lg bg-yellow-500 px-2.5 py-1 text-xs font-bold text-black hover:bg-yellow-400 transition"
+            >
+              تمدید
+            </Link>
           </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {r.top_tools.map((tool, i) => (
-              <article
-                key={i}
-                className="rounded-2xl border border-ink-700/60 bg-ink-800/30 p-5 transition hover:border-ink-600/80"
-              >
-                {/* Tool header */}
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div>
-                    <div className="mb-1.5 flex items-center gap-2">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-brand-500/15 text-[11px] font-bold text-brand-400">
-                        {i + 1}
-                      </span>
-                      <h3 className="font-bold text-ink-100">{tool.name}</h3>
-                    </div>
-                    <span className="chip">{tool.category}</span>
-                  </div>
-                  <DifficultyBadge d={tool.difficulty} />
-                </div>
-
-                {/* Tool details */}
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <div className="mb-1 flex items-center gap-1.5 text-xs text-ink-500">
-                      <Target className="h-3 w-3" />
-                      چرا برای تو؟
-                    </div>
-                    <p className="leading-relaxed text-ink-300">
-                      {tool.why_relevant}
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="mb-1 flex items-center gap-1.5 text-xs text-ink-500">
-                      <Zap className="h-3 w-3" />
-                      چطور در کارت استفاده کن
-                    </div>
-                    <p className="leading-relaxed text-ink-300">
-                      {tool.how_to_use_in_your_job}
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg bg-ink-900/60 p-3">
-                    <div className="mb-1.5 flex items-center gap-1.5 text-xs text-ink-600">
-                      <Sparkles className="h-3 w-3" />
-                      مثال واقعی
-                    </div>
-                    <p className="text-xs leading-relaxed text-ink-400 italic">
-                      {tool.example_scenario}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Tool footer */}
-                <div className="mt-4 flex items-center justify-between border-t border-ink-700/40 pt-3 text-xs text-ink-500">
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="h-3 w-3" />
-                    {tool.learning_time}
-                  </span>
-                  {tool.url && (
-                    <a
-                      href={tool.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-brand-400 transition hover:text-brand-300"
-                    >
-                      باز کردن
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Roadmap ── */}
-        {r.roadmap && r.roadmap.length > 0 && (
-          <section className="mb-8">
-            <div className="mb-5">
-              <h2 className="text-xl font-bold tracking-tight">
-                نقشه راه ۴ هفته‌ای
-              </h2>
-              <p className="mt-1 text-sm text-ink-500">
-                قدم به قدم، بدون اینکه گم بشی.
-              </p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {r.roadmap.map((w, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl border border-ink-700/60 bg-ink-800/30 p-5"
-                >
-                  <div className="mb-4 flex items-center gap-3">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-500/15 text-sm font-bold text-brand-400">
-                      {i + 1}
-                    </span>
-                    <h3 className="font-bold text-ink-200">{w.week}</h3>
-                  </div>
-                  <ul className="space-y-2">
-                    {w.goals.map((g, j) => (
-                      <li key={j} className="flex items-start gap-2.5 text-sm">
-                        <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500/60" />
-                        <span className="leading-relaxed text-ink-300">{g}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </section>
         )}
 
-        {/* ── Pro upsell ── */}
-        {!isPro && (
-          <section className="mb-8 rounded-2xl border border-brand-500/20 bg-brand-500/5 p-6">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto] md:items-center">
-              <div>
-                <h2 className="mb-1.5 text-lg font-bold">
-                  می‌خوای تحلیل عمیق‌تر؟
-                </h2>
-                <p className="text-sm leading-relaxed text-ink-400">
-                  Pro بشو و ۱۰+ ابزار با مثال‌های تفصیلی، تحلیل نامحدود، و چت
-                  با مشاور AI اختصاصی رو باز کن.
+        {/* ── AI Insight strip ── */}
+        {r ? (
+          <div className="mb-6 overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.12] to-transparent p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20">
+                <Sparkles className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="mb-1 text-[11px] font-semibold text-emerald-400">
+                  آخرین تحلیل AI
+                </p>
+                <p className="text-[13px] leading-relaxed text-ink-200 line-clamp-2">
+                  {r.analysis_summary}
                 </p>
               </div>
-              <Link href="/upgrade" className="btn-primary shrink-0">
-                ارتقا به Pro
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
             </div>
-          </section>
+            <Link
+              href="/dashboard/analysis"
+              className="mt-3 flex items-center gap-1 text-[11.5px] font-medium text-emerald-400 transition hover:text-emerald-300"
+            >
+              مشاهده تحلیل کامل
+              <ChevronLeft className="h-3 w-3" />
+            </Link>
+          </div>
+        ) : (
+          <div className="mb-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 text-center">
+            <div className="mb-3 text-3xl">🤖</div>
+            <p className="mb-1 font-bold text-ink-100">اولین تحلیلت رو شروع کن</p>
+            <p className="mb-4 text-xs leading-relaxed text-ink-500">
+              بگو چی هستی و چی بلدی — AI بهت می‌گه چطور قوی‌تر بشی
+            </p>
+            <Link href="/profile" className="btn-lux text-sm">
+              شروع تحلیل
+              <ArrowLeft className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         )}
 
-        {/* ── Edit profile ── */}
-        <div className="flex justify-center">
-          <Link href="/profile" className="btn-ghost text-sm">
-            <BarChart3 className="h-4 w-4" />
-            ویرایش پروفایل و تحلیل مجدد
-          </Link>
+        {/* ── Feature Grid ── */}
+        <div className="grid grid-cols-2 gap-3">
+          <FeatureCard
+            href="/dashboard/analysis"
+            title="تحلیل مسیر شغلی"
+            desc={
+              r
+                ? `ریسک جایگزینی: ${
+                    r.risk_level === "low"
+                      ? "پایین"
+                      : r.risk_level === "medium"
+                      ? "متوسط"
+                      : "بالا"
+                  }`
+                : "هنوز تحلیل نداری"
+            }
+            iconBg="bg-emerald-500/20"
+            icon={<Sparkles className="h-5 w-5 text-emerald-400" />}
+            gradientFrom="from-emerald-500/20"
+            borderColor="border-emerald-500/20"
+            cta={r ? "مشاهده" : "شروع"}
+            active={!!r}
+          />
+
+          <FeatureCard
+            href={isPro ? "/chat" : "/billing/checkout"}
+            title="مسیریاب AI"
+            desc={isPro ? "بپرس، جواب شخصی بگیر" : "نیاز به پلن پرو"}
+            iconBg="bg-violet-500/20"
+            icon={<MessageCircle className="h-5 w-5 text-violet-400" />}
+            gradientFrom="from-violet-500/20"
+            borderColor="border-violet-500/20"
+            cta={isPro ? "گفتگو" : "ارتقا"}
+            badge={!isPro ? "PRO" : undefined}
+            active={isPro}
+          />
+
+          <FeatureCard
+            href="/jobs"
+            title="شغل‌های مچ‌شده"
+            desc={
+              jobCount > 0
+                ? `${jobCount.toLocaleString("fa-IR")} موقعیت فعال`
+                : "به زودی آپدیت می‌شه"
+            }
+            iconBg="bg-sky-500/20"
+            icon={<Briefcase className="h-5 w-5 text-sky-400" />}
+            gradientFrom="from-sky-500/20"
+            borderColor="border-sky-500/20"
+            cta="مشاهده"
+            active={jobCount > 0}
+          />
+
+          <FeatureCard
+            href="/courses"
+            title="بهترین دوره‌ها"
+            desc={
+              courseCount > 0
+                ? `${courseCount.toLocaleString("fa-IR")} دوره`
+                : "به زودی"
+            }
+            iconBg="bg-orange-500/20"
+            icon={<GraduationCap className="h-5 w-5 text-orange-400" />}
+            gradientFrom="from-orange-500/20"
+            borderColor="border-orange-500/20"
+            cta="مشاهده"
+            active={courseCount > 0}
+          />
+
+          <FeatureCard
+            href="/dashboard/analysis#roadmap"
+            title="رودمپ هفتگی"
+            desc={
+              progressTotal > 0
+                ? `${progressDone.toLocaleString("fa-IR")} از ${progressTotal.toLocaleString(
+                    "fa-IR"
+                  )} تسک`
+                : "بعد از اولین تحلیل"
+            }
+            iconBg="bg-yellow-500/20"
+            icon={<Map className="h-5 w-5 text-yellow-400" />}
+            gradientFrom="from-yellow-500/20"
+            borderColor="border-yellow-500/20"
+            cta="ادامه"
+            active={progressTotal > 0}
+          />
+
+          <FeatureCard
+            href="/dashboard/analysis#tools"
+            title="ابزارهای AI"
+            desc={
+              r
+                ? `${r.top_tools.length.toLocaleString("fa-IR")} ابزار پیشنهادی`
+                : "بعد از اولین تحلیل"
+            }
+            iconBg="bg-pink-500/20"
+            icon={<Wrench className="h-5 w-5 text-pink-400" />}
+            gradientFrom="from-pink-500/20"
+            borderColor="border-pink-500/20"
+            cta="مشاهده"
+            active={!!r}
+          />
+        </div>
+
+        {/* ── بیکارم حال ندارم ── */}
+        <Link
+          href="/games"
+          className="group mt-3 flex items-center gap-4 overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-l from-fuchsia-500/[0.08] to-transparent p-4 transition hover:-translate-y-0.5 hover:border-fuchsia-500/20"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/15 text-2xl">
+            🎮
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-ink-100">بیکارم حال ندارم</h3>
+            <p className="mt-0.5 text-[12px] text-ink-500 leading-relaxed">
+              وقتی نه AI می‌تونه کمکت کنه نه بازار سنتی
+            </p>
+          </div>
+          <Gamepad2 className="h-5 w-5 text-fuchsia-400 transition-transform group-hover:scale-110" />
+        </Link>
+
+        {/* ── Usage strip ── */}
+        <div className="mt-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3.5">
+          <div className="mb-2.5 flex items-center justify-between">
+            <span className="text-xs font-medium text-ink-500">استفاده این هفته</span>
+            <Link
+              href="/billing"
+              className="text-[10.5px] text-ink-600 transition hover:text-ink-400"
+            >
+              مدیریت اشتراک ←
+            </Link>
+          </div>
+          <UsageBar
+            label="تحلیل"
+            used={analysesUsed}
+            limit={planDef.limits.analysesPerWeek}
+          />
+          {!isPro && (
+            <p className="mt-2 text-[10.5px] text-ink-600">
+              پلن رایگان ·{" "}
+              <Link
+                href="/billing/checkout"
+                className="text-emerald-500 transition hover:text-emerald-400"
+              >
+                ارتقا به پرو
+              </Link>{" "}
+              برای ۵ تحلیل/هفته + مسیریاب AI
+            </p>
+          )}
         </div>
       </main>
     </div>
   );
 }
 
-/* ── Helpers ── */
-
-function RiskBadge({ level }: { level: "low" | "medium" | "high" }) {
-  const map = {
-    low: {
-      label: "پایین",
-      cls: "bg-green-500/10 text-green-400 border-green-500/20",
-      icon: TrendingUp,
-    },
-    medium: {
-      label: "متوسط",
-      cls: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-      icon: AlertTriangle,
-    },
-    high: {
-      label: "بالا",
-      cls: "bg-red-500/10 text-red-400 border-red-500/20",
-      icon: AlertTriangle,
-    },
-  };
-  const m = map[level] ?? map.medium;
-  const Icon = m.icon;
+/* ─────────────────────────────────────────────
+   Feature Card
+───────────────────────────────────────────── */
+function FeatureCard({
+  href,
+  title,
+  desc,
+  icon,
+  iconBg,
+  gradientFrom,
+  borderColor,
+  cta,
+  badge,
+  active,
+}: {
+  href: string;
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  gradientFrom: string;
+  borderColor: string;
+  cta: string;
+  badge?: string;
+  active?: boolean;
+}) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${m.cls}`}
+    <Link
+      href={href}
+      className={`group relative flex flex-col overflow-hidden rounded-2xl border ${borderColor} bg-gradient-to-br ${gradientFrom} to-transparent p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]`}
     >
-      <Icon className="h-3.5 w-3.5" />
-      {m.label}
-    </span>
+      {badge && (
+        <span className="absolute left-3 top-3 rounded-full border border-white/15 bg-black/40 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-ink-400">
+          {badge}
+        </span>
+      )}
+
+      <div
+        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}
+      >
+        {icon}
+      </div>
+
+      <h3 className="mb-1 text-[13px] font-bold leading-snug text-ink-100">
+        {title}
+      </h3>
+      <p
+        className={`mb-3 flex-1 text-[11.5px] leading-relaxed ${
+          active ? "text-ink-400" : "text-ink-600"
+        }`}
+      >
+        {desc}
+      </p>
+
+      <div className="flex items-center gap-1 text-[11.5px] font-semibold text-ink-400 transition-colors group-hover:text-ink-100">
+        {cta}
+        <ChevronLeft className="h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
+      </div>
+    </Link>
   );
 }
 
-function DifficultyBadge({
-  d,
+/* ─────────────────────────────────────────────
+   Usage Bar
+───────────────────────────────────────────── */
+function UsageBar({
+  label,
+  used,
+  limit,
 }: {
-  d: "beginner" | "intermediate" | "advanced";
+  label: string;
+  used: number;
+  limit: number;
 }) {
-  const map = {
-    beginner: { label: "مبتدی", cls: "text-green-400 bg-green-500/8 border-green-500/15" },
-    intermediate: {
-      label: "متوسط",
-      cls: "text-yellow-400 bg-yellow-500/8 border-yellow-500/15",
-    },
-    advanced: { label: "پیشرفته", cls: "text-red-400 bg-red-500/8 border-red-500/15" },
-  };
-  const m = map[d] ?? map.intermediate;
+  const unlimited = limit === -1;
+  const pct = unlimited
+    ? 0
+    : limit === 0
+    ? 0
+    : Math.min(100, Math.round((used / limit) * 100));
+  const isNear = pct >= 80;
+
   return (
-    <span
-      className={`shrink-0 rounded-lg border px-2 py-1 text-[11px] font-medium ${m.cls}`}
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-ink-500">{label}</span>
+        <span
+          className={`font-mono text-[11px] ${
+            isNear ? "text-yellow-400" : "text-ink-500"
+          }`}
+        >
+          {unlimited
+            ? "نامحدود"
+            : `${used.toLocaleString("fa-IR")} / ${limit.toLocaleString("fa-IR")}`}
+        </span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.05]">
+        {unlimited ? (
+          <div className="h-full w-full animate-pulse rounded-full bg-emerald-500/30" />
+        ) : (
+          <div
+            className={`h-full rounded-full transition-all ${
+              isNear ? "bg-yellow-400" : "bg-emerald-400"
+            }`}
+            style={{ width: `${pct}%` }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Dashboard Header
+───────────────────────────────────────────── */
+function DashboardHeader({
+  plan,
+  isPro,
+  isMax,
+}: {
+  plan: string;
+  isPro: boolean;
+  isMax: boolean;
+}) {
+  const planLabel = isMax ? "مکس" : isPro ? "پرو" : "رایگان";
+  const planColor = isMax
+    ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/20"
+    : isPro
+    ? "bg-emerald-500/12 text-emerald-300 border-emerald-500/20"
+    : "bg-white/5 text-ink-400 border-white/[0.08]";
+
+  return (
+    <header
+      className="sticky top-0 z-40 border-b border-white/[0.06]"
+      style={{
+        background: "rgba(2,3,6,0.88)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+      }}
     >
-      {m.label}
-    </span>
+      <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3.5">
+        <Link href="/dashboard">
+          <LogoStatic size={32} showWordmark />
+        </Link>
+
+        <div className="flex items-center gap-2">
+          <span
+            className={`rounded-full border px-2.5 py-0.5 text-[10.5px] font-semibold ${planColor}`}
+          >
+            {isMax && <Crown className="mr-1 inline h-3 w-3" />}
+            {isPro && !isMax && <Zap className="mr-1 inline h-3 w-3" />}
+            {planLabel}
+          </span>
+
+          <Link
+            href="/billing"
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:text-ink-200"
+            title="اشتراک"
+          >
+            <CreditCard className="h-3.5 w-3.5" />
+          </Link>
+
+          <Link
+            href="/settings"
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:text-ink-200"
+            title="تنظیمات"
+          >
+            <Settings className="h-3.5 w-3.5" />
+          </Link>
+
+          <Link
+            href="/profile"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:text-ink-200"
+            title="پروفایل"
+          >
+            <User className="h-3.5 w-3.5" />
+          </Link>
+
+          <DashboardClient />
+        </div>
+      </div>
+    </header>
   );
 }

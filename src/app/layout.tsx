@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://cdn.fontcdn.ir/Font/Persian/Peyda/Peyda.css"
         />
       </head>
-      <body className="min-h-screen" style={{ fontFamily: "'Peyda', 'Vazirmatn', system-ui, sans-serif" }}>
+      <body className="min-h-screen" style={{ fontFamily: "'Peyda', 'Vazirmatn', system-ui, sans-serif", background: "#020306", color: "#e8efea" }}>
         <LenisProvider />
         {children}
       </body>

@@ -2,13 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { pool } from "@/lib/db";
 
+export async function GET() {
+  try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+    const res = await pool.query("SELECT * FROM profiles WHERE user_id=$1", [session.id]);
+    return NextResponse.json({ profile: res.rows[0] ?? null });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "خطای سرور" }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
+    // Ensure nickname column exists (safe, idempotent)
+    await pool.query(
+      `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nickname TEXT`
+    ).catch(() => {}); // ignore if already exists or no ALTER permission
+
     const body = await req.json();
     const {
+      nickname,
       full_name,
       age,
       job_title,
@@ -21,18 +39,30 @@ export async function POST(req: NextRequest) {
 
     // Upsert profile
     await pool.query(
-      `INSERT INTO profiles (user_id, full_name, age, job_title, industry, years_experience, skills, bio, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())
+      `INSERT INTO profiles
+         (user_id, nickname, full_name, age, job_title, industry, years_experience, skills, bio, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
        ON CONFLICT (user_id) DO UPDATE SET
-         full_name = EXCLUDED.full_name,
-         age = EXCLUDED.age,
-         job_title = EXCLUDED.job_title,
-         industry = EXCLUDED.industry,
-         years_experience = EXCLUDED.years_experience,
-         skills = EXCLUDED.skills,
-         bio = EXCLUDED.bio,
-         updated_at = now()`,
-      [session.id, full_name, age ?? null, job_title, industry, years_experience ?? 0, skills ?? [], bio ?? null]
+         nickname          = COALESCE(EXCLUDED.nickname, profiles.nickname),
+         full_name         = COALESCE(EXCLUDED.full_name, profiles.full_name),
+         age               = COALESCE(EXCLUDED.age, profiles.age),
+         job_title         = COALESCE(EXCLUDED.job_title, profiles.job_title),
+         industry          = COALESCE(EXCLUDED.industry, profiles.industry),
+         years_experience  = COALESCE(EXCLUDED.years_experience, profiles.years_experience),
+         skills            = COALESCE(EXCLUDED.skills, profiles.skills),
+         bio               = COALESCE(EXCLUDED.bio, profiles.bio),
+         updated_at        = now()`,
+      [
+        session.id,
+        nickname ?? null,
+        full_name ?? null,
+        age ?? null,
+        job_title ?? null,
+        industry ?? null,
+        years_experience ?? null,
+        skills ?? null,
+        bio ?? null,
+      ]
     );
 
     // Also update full_name in users table

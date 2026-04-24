@@ -4,6 +4,7 @@ import { pool } from "@/lib/db";
 import { ProfileClient } from "./ProfileClient";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { BottomNav } from "@/app/components/BottomNav";
 
 export default async function ProfilePage() {
   const session = await getSession();
@@ -18,7 +19,8 @@ export default async function ProfilePage() {
   const profile = profileRes.rows[0];
 
   return (
-    <div className="min-h-[100dvh] px-6 py-10">
+    <div className="min-h-[100dvh] pb-28 px-6 py-10">
+      <BottomNav />
       <div className="mx-auto max-w-2xl">
         {/* Back */}
         <Link

@@ -12,6 +12,7 @@ import {
   X,
   Sparkles,
 } from "lucide-react";
+import { Logo } from "@/app/components/Logo";
 
 const INDUSTRIES = [
   "توسعه نرم‌افزار",
@@ -39,11 +40,12 @@ const STEP_LABELS = ["اطلاعات پایه", "مهارت‌ها", "رزومه
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // step 0 = nickname screen
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
+    nickname: "",
     full_name: "",
     age: "",
     job_title: "",
@@ -89,6 +91,7 @@ export default function OnboardingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          nickname: form.nickname,
           full_name: form.full_name,
           age: form.age ? parseInt(form.age) : null,
           job_title: form.job_title,
@@ -125,64 +128,123 @@ export default function OnboardingPage() {
     form.full_name && form.age && form.job_title && form.industry;
   const canNext2 = form.years_experience && form.skills.length >= 2;
 
+  // ── Step 0: Welcome / Nickname ──────────────────────────────────────
+  if (step === 0) {
+    return (
+      <div
+        className="flex min-h-[100dvh] flex-col items-center justify-center px-6 text-center"
+        style={{ background: "#020306", color: "#e8efea" }}
+      >
+        <div
+          className="pointer-events-none fixed inset-0 -z-10"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 50% at 50% 30%, rgba(52,211,153,0.08), transparent 70%)",
+          }}
+        />
+
+        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl text-4xl">
+          👋
+        </div>
+        <h1 className="mb-2 text-3xl font-black tracking-tight">
+          خوش اومدی به ای‌وای!
+        </h1>
+        <p className="mb-2 text-sm leading-relaxed text-ink-400">
+          اینجا هوش مصنوعی کمکت می‌کنه مسیر حرفه‌ای‌ات رو بسازی.
+        </p>
+        <p className="mb-8 text-base font-semibold text-ink-200">
+          اول بگو — <span className="text-emerald-400">چی صدات کنم؟</span>
+        </p>
+
+        <div className="w-full max-w-xs">
+          <input
+            value={form.nickname}
+            onChange={(e) => setForm({ ...form, nickname: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && form.nickname.trim()) setStep(1);
+            }}
+            className="input-field w-full text-center text-lg"
+            placeholder="مثلاً علی، ساره، محمد..."
+            autoFocus
+          />
+
+          <button
+            type="button"
+            onClick={() => setStep(1)}
+            disabled={!form.nickname.trim()}
+            className="btn-lux mt-4 w-full justify-center"
+          >
+            بریم!
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+        </div>
+
+        <p className="mt-6 text-[11px] text-ink-700">
+          ۲-۳ دقیقه وقت می‌بره · بعدش تحلیل هوشمند آماده‌ست
+        </p>
+      </div>
+    );
+  }
+
+  // ── Steps 1–3: Main wizard ──────────────────────────────────────────
   return (
-    <div className="flex min-h-[100dvh] flex-col">
-      {/* Background accent */}
+    <div
+      className="flex min-h-[100dvh] flex-col"
+      style={{ background: "#020306", color: "#e8efea" }}
+    >
       <div
         className="pointer-events-none fixed inset-0 -z-10"
         style={{
           background:
-            "radial-gradient(ellipse 60% 40% at 70% 20%, rgba(6,182,212,0.05), transparent 60%)",
+            "radial-gradient(ellipse 60% 40% at 70% 20%, rgba(6,182,212,0.04), transparent 60%)",
         }}
       />
 
       {/* Top bar */}
-      <header className="border-b border-ink-700/40 px-6 py-4">
+      <header className="border-b border-white/[0.06] px-6 py-4">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-xs font-black text-white">
-              AY
-            </div>
-            <span className="text-sm font-bold tracking-tight">ای‌وای</span>
+          <Link href="/dashboard">
+            <Logo size={32} showWordmark />
           </Link>
 
           <span className="text-xs text-ink-500">
-            مرحله{" "}
-            <span className="font-bold text-ink-200">{step}</span>{" "}
-            از ۳
+            سلام{" "}
+            <span className="font-bold text-emerald-400">{form.nickname}</span>
+            {" "}·{" "}
+            مرحله <span className="font-bold text-ink-200">{step}</span> از ۳
           </span>
         </div>
       </header>
 
       {/* Progress bar */}
-      <div className="h-px w-full bg-ink-700/40">
+      <div className="h-px w-full bg-white/[0.04]">
         <div
-          className="h-px bg-brand-500 transition-all duration-500"
+          className="h-px bg-emerald-500 transition-all duration-500"
           style={{ width: `${(step / 3) * 100}%` }}
         />
       </div>
 
       {/* Step labels */}
-      <div className="border-b border-ink-700/40 px-6 py-3">
+      <div className="border-b border-white/[0.06] px-6 py-3">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-2">
           {STEP_LABELS.map((label, i) => (
             <div
               key={label}
               className={`flex items-center gap-2 text-xs transition ${
                 i + 1 === step
-                  ? "text-ink-100 font-medium"
+                  ? "font-medium text-ink-100"
                   : i + 1 < step
-                  ? "text-brand-400"
+                  ? "text-emerald-400"
                   : "text-ink-600"
               }`}
             >
               <span
                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                   i + 1 < step
-                    ? "bg-brand-500 text-white"
+                    ? "bg-emerald-500 text-white"
                     : i + 1 === step
-                    ? "border border-brand-500/60 text-brand-400"
-                    : "border border-ink-700 text-ink-600"
+                    ? "border border-emerald-500/60 text-emerald-400"
+                    : "border border-white/[0.08] text-ink-600"
                 }`}
               >
                 {i + 1 < step ? <Check className="h-3 w-3" /> : i + 1}
@@ -201,7 +263,7 @@ export default function OnboardingPage() {
             <div className="animate-fade-up space-y-6">
               <div>
                 <h2 className="mb-1 text-2xl font-black tracking-tight">
-                  تعریف کن خودتو
+                  {form.nickname}، تعریف کن خودتو
                 </h2>
                 <p className="text-sm text-ink-400">
                   این اطلاعات پایه به ما کمک می‌کنه تحلیل دقیق‌تری بدیم.
@@ -283,9 +345,9 @@ export default function OnboardingPage() {
                   className="input-field"
                 >
                   <option value="">انتخاب کن...</option>
-                  {INDUSTRIES.map((i) => (
-                    <option key={i} value={i}>
-                      {i}
+                  {INDUSTRIES.map((ind) => (
+                    <option key={ind} value={ind}>
+                      {ind}
                     </option>
                   ))}
                 </select>
@@ -342,7 +404,7 @@ export default function OnboardingPage() {
                         <button
                           type="button"
                           onClick={() => removeSkill(s)}
-                          className="opacity-60 hover:opacity-100 transition"
+                          className="opacity-60 transition hover:opacity-100"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -379,7 +441,7 @@ export default function OnboardingPage() {
                 </p>
               </div>
 
-              <label className="group flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-ink-700 bg-ink-800/20 p-12 transition hover:border-brand-500/40 hover:bg-ink-800/30">
+              <label className="group flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.02] p-12 transition hover:border-emerald-500/30 hover:bg-white/[0.03]">
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx,.txt"
@@ -390,8 +452,8 @@ export default function OnboardingPage() {
                 />
                 {resumeFile ? (
                   <>
-                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/10">
-                      <Check className="h-5 w-5 text-brand-400" />
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10">
+                      <Check className="h-5 w-5 text-emerald-400" />
                     </div>
                     <p className="font-medium text-ink-100">{resumeFile.name}</p>
                     <p className="mt-1 text-xs text-ink-500">
@@ -400,7 +462,7 @@ export default function OnboardingPage() {
                   </>
                 ) : (
                   <>
-                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-ink-700 bg-ink-800/40">
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.03]">
                       <Upload className="h-5 w-5 text-ink-500" />
                     </div>
                     <p className="font-medium text-ink-300">
@@ -413,11 +475,12 @@ export default function OnboardingPage() {
                 )}
               </label>
 
-              {/* Ready indicator */}
-              <div className="flex items-center gap-3 rounded-xl border border-ink-700/40 bg-ink-800/20 px-4 py-3">
-                <Sparkles className="h-4 w-4 shrink-0 text-brand-400" />
+              <div className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                <Sparkles className="h-4 w-4 shrink-0 text-emerald-400" />
                 <div>
-                  <p className="text-sm font-medium">آماده تحلیل</p>
+                  <p className="text-sm font-medium">
+                    آماده تحلیل برای {form.nickname}
+                  </p>
                   <p className="text-xs text-ink-500">
                     هوش مصنوعی پروفایلت رو می‌خونه — نتیجه تا ۳۰ ثانیه دیگه.
                   </p>
@@ -434,18 +497,14 @@ export default function OnboardingPage() {
 
           {/* Navigation */}
           <div className="mt-10 flex items-center justify-between gap-4">
-            {step > 1 ? (
-              <button
-                type="button"
-                onClick={() => setStep(step - 1)}
-                className="btn-ghost"
-              >
-                <ArrowRight className="h-4 w-4" />
-                قبلی
-              </button>
-            ) : (
-              <div />
-            )}
+            <button
+              type="button"
+              onClick={() => setStep(step - 1)}
+              className="btn-ghost"
+            >
+              <ArrowRight className="h-4 w-4" />
+              قبلی
+            </button>
 
             {step < 3 ? (
               <button

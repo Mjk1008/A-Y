@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "change-me-in-production"
@@ -7,18 +8,27 @@ const SECRET = new TextEncoder().encode(
 
 export type SessionUser = { id: string; phone: string; plan: string };
 
+export const SESSION_COOKIE = "ay_session";
+
+export const SESSION_COOKIE_OPTIONS = {
+  httpOnly:  true,
+  secure:    process.env.NODE_ENV === "production",
+  sameSite:  "lax" as const,
+  maxAge:    60 * 60,   /* 1 hour — sliding window refreshed in middleware */
+  path:      "/",
+};
+
 export async function createSession(user: SessionUser) {
-  const token = await new SignJWT({ ...user })
+  return new SignJWT({ ...user })
     .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("30d")
+    .setExpirationTime("1h")
     .sign(SECRET);
-  return token;
 }
 
 export async function getSession(): Promise<SessionUser | null> {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get("ay_session")?.value;
+    const token = cookieStore.get(SESSION_COOKIE)?.value;
     if (!token) return null;
     const { payload } = await jwtVerify(token, SECRET);
     return payload as unknown as SessionUser;
@@ -27,18 +37,32 @@ export async function getSession(): Promise<SessionUser | null> {
   }
 }
 
+/**
+ * Attach the session cookie to any NextResponse.
+ * Use this in Route Handlers (API routes) — it guarantees the
+ * Set-Cookie header is sent on the HTTP response.
+ */
+export function attachSessionCookie(res: NextResponse, token: string): NextResponse {
+  res.cookies.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);
+  return res;
+}
+
+/**
+ * Clear the session cookie on a NextResponse.
+ */
+export function clearSessionCookie(res: NextResponse): NextResponse {
+  res.cookies.set(SESSION_COOKIE, "", { ...SESSION_COOKIE_OPTIONS, maxAge: 0 });
+  return res;
+}
+
+/* Legacy helpers kept for Server Actions / server components that use
+   next/headers directly. Route Handlers should use attachSessionCookie. */
 export async function setSessionCookie(token: string) {
   const cookieStore = await cookies();
-  cookieStore.set("ay_session", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30,
-    path: "/",
-  });
+  cookieStore.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);
 }
 
 export async function clearSession() {
   const cookieStore = await cookies();
-  cookieStore.delete("ay_session");
+  cookieStore.delete(SESSION_COOKIE);
 }

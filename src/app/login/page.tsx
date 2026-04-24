@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { Logo } from "@/app/components/Logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,6 +29,20 @@ export default function LoginPage() {
       setError(data.error);
       return;
     }
+    // Dev bypass: auto-verify with empty code
+    if (data.dev) {
+      const vRes = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, code: "" }),
+      });
+      const vData = await vRes.json();
+      if (vRes.ok) {
+        router.refresh();
+        router.push(vData.hasProfile ? "/dashboard" : "/onboarding");
+        return;
+      }
+    }
     setStep("otp");
   }
 
@@ -46,6 +61,9 @@ export default function LoginPage() {
       setError(data.error);
       return;
     }
+    /* refresh() clears Next.js router cache so the server re-reads
+       the cookie on the next navigation — prevents stale auth state. */
+    router.refresh();
     router.push(data.hasProfile ? "/dashboard" : "/onboarding");
   }
 
@@ -62,11 +80,8 @@ export default function LoginPage() {
 
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <Link href="/" className="mb-10 flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-xs font-black text-white">
-            AY
-          </div>
-          <span className="text-sm font-bold tracking-tight">ای‌وای</span>
+        <Link href="/" className="mb-10 inline-block">
+          <Logo size={34} showWordmark />
         </Link>
 
         {/* Header */}

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Sparkles, X, Check } from "lucide-react";
+import Link from "next/link";
+import { Loader2, Sparkles, X, Check, Zap } from "lucide-react";
 
 type Profile = {
   full_name: string;
@@ -30,6 +31,7 @@ export function ProfileClient({ initial }: { initial: Profile }) {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   function addSkill() {
     const s = form.skillInput.trim();
@@ -71,6 +73,7 @@ export function ProfileClient({ initial }: { initial: Profile }) {
   async function reanalyze() {
     setAnalyzing(true);
     setError(null);
+    setQuotaExceeded(false);
     try {
       const saveRes = await fetch("/api/profile", {
         method: "POST",
@@ -88,6 +91,10 @@ export function ProfileClient({ initial }: { initial: Profile }) {
       if (!saveRes.ok) throw new Error("خطا در ذخیره پروفایل");
 
       const r = await fetch("/api/analyze", { method: "POST" });
+      if (r.status === 429) {
+        setQuotaExceeded(true);
+        return;
+      }
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
         throw new Error(j.error || "خطا در تحلیل");
@@ -215,6 +222,33 @@ export function ProfileClient({ initial }: { initial: Profile }) {
           className="input-field min-h-[100px] resize-none"
         />
       </div>
+
+      {/* Quota exceeded — upgrade paywall */}
+      {quotaExceeded && (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Zap className="h-5 w-5 text-emerald-400" />
+            <p className="font-bold text-emerald-300">سقف تحلیل هفتگی رو رسیدی</p>
+          </div>
+          <p className="mb-4 text-sm leading-relaxed text-ink-400">
+            پلن رایگان ۱ تحلیل در هفته داره. با ارتقا به پرو، ۵ تحلیل در هفته،
+            مسیریاب AI و ۲۰ شغل روزانه داری.
+          </p>
+          <Link
+            href="/billing/checkout"
+            className="btn-lux w-full justify-center text-sm"
+          >
+            ارتقا به پرو — ۲۹۸٬۰۰۰ تومان/ماه
+            <Zap className="h-4 w-4" />
+          </Link>
+          <button
+            onClick={() => setQuotaExceeded(false)}
+            className="mt-2 w-full py-2 text-xs text-ink-600 transition hover:text-ink-400"
+          >
+            بعداً
+          </button>
+        </div>
+      )}
 
       {/* Feedback */}
       {error && (
