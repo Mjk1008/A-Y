@@ -19,11 +19,14 @@ import {
   Crown,
   Zap,
   Gamepad2,
+  Shield,
 } from "lucide-react";
 import { DashboardClient } from "./DashboardClient";
 import { BottomNav } from "@/app/components/BottomNav";
 import { LogoStatic } from "@/app/components/Logo";
 import { PLANS } from "@/app/config/plans";
+
+const ADMIN_PHONE = "09366291008";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -40,6 +43,13 @@ export default async function DashboardPage() {
   const planDef = PLANS.find((p) => p.id === plan) ?? PLANS[0];
   const isPro = plan === "pro" || plan === "max";
   const isMax = plan === "max";
+
+  // Check admin
+  const adminRes = await pool.query(
+    "SELECT is_admin FROM users WHERE id=$1 LIMIT 1",
+    [session.id]
+  ).catch(() => ({ rows: [] }));
+  const isAdmin = adminRes.rows[0]?.is_admin === true || session.phone === ADMIN_PHONE;
 
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -111,6 +121,21 @@ export default async function DashboardPage() {
       <BottomNav />
 
       <main className="mx-auto max-w-md px-5 pt-6">
+        {/* ── Admin Banner ── */}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/[0.07] px-4 py-3 transition hover:bg-amber-500/[0.12]"
+          >
+            <Shield className="h-4 w-4 shrink-0 text-amber-400" />
+            <div className="flex-1">
+              <p className="text-[12px] font-bold text-amber-300">پنل مدیریت</p>
+              <p className="text-[10.5px] text-amber-400/60">آمار کاربران و مدیریت سیستم</p>
+            </div>
+            <ArrowLeft className="h-3.5 w-3.5 text-amber-400/60" />
+          </Link>
+        )}
+
         {/* ── Greeting ── */}
         <div className="mb-6">
           <p className="text-[11px] text-ink-600">

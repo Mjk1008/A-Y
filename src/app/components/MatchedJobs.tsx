@@ -1,6 +1,7 @@
 "use client";
 
-import { MapPin, ExternalLink, Clock, Loader2, Search, Wifi, Bookmark } from "lucide-react";
+import { MapPin, ExternalLink, Clock, Search, Wifi, Bookmark } from "lucide-react";
+import { SkeletonList } from "@/app/components/LoadingStates";
 import { useEffect, useState, useCallback } from "react";
 
 interface Job {
@@ -126,9 +127,7 @@ export default function MatchedJobs({ limit = 3 }: { limit?: number }) {
 
       {/* Content */}
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
-          <Loader2 size={24} color="rgba(110,231,183,0.5)" className="animate-spin" />
-        </div>
+        <SkeletonList count={4} />
       ) : jobs.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {jobs.map((job, idx) => (

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<title>A-Y · ای‌وای — راهنمای شغلی هوش مصنوعی</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Vazirmatn as Peyda substitute — Peyda isn't reliably available on a public CDN -->
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  html, body { margin: 0; padding: 0; background: #020306; overflow-x: hidden; }
+  body {
+    font-family: 'Peyda', 'Vazirmatn', sans-serif;
+    color: #e8efea;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  /* Storytelling animations */
+  @keyframes ay-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50%      { transform: translateY(-10px) rotate(3deg); }
+  }
+  @keyframes ay-spin {
+    from { transform: translate(-50%, 0) rotate(0deg); }
+    to   { transform: translate(-50%, 0) rotate(360deg); }
+  }
+  @keyframes ay-twinkle {
+    0%, 100% { opacity: 0.2; }
+    50%      { opacity: 0.95; }
+  }
+  @keyframes ay-run-bob {
+    from { transform: translate(-50%, -100%) translateY(0); }
+    to   { transform: translate(-50%, -100%) translateY(-2px); }
+  }
+  @keyframes ay-breathe {
+    0%, 100% { transform: translate(-50%, -100%) scale(1); }
+    50%      { transform: translate(-50%, -100%) scale(1.015); }
+  }
+  @keyframes ay-pulse-dot {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.4); }
+  }
+  @keyframes ay-caret {
+    0%, 50%   { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+  @keyframes ay-typing {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30%           { transform: translateY(-4px); opacity: 1; }
+  }
+  @keyframes ay-fade-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Canvas background */
+  html { background: #020306; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script src="ay-tokens.js"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="ay-scene.jsx"></script>
+<script type="text/babel" src="ay-primitives.jsx"></script>
+<script type="text/babel" src="ay-landing.jsx"></script>
+<script type="text/babel" src="ay-app-screens.jsx"></script>
+<script type="text/babel" src="ay-chat.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+// hooks already destructured in ay-scene.jsx
+
+// Tweakable defaults — only accent hue and depth, per spec
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "hue": "emerald",
+  "depth": 1
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  // Re-render scenes when hue/depth change by injecting overrides
+  useEffect(() => {
+    const style = document.getElementById('ay-tweak-style') || (() => {
+      const s = document.createElement('style');
+      s.id = 'ay-tweak-style';
+      document.head.appendChild(s);
+      return s;
+    })();
+    style.textContent = '';
+  }, [tweaks.hue, tweaks.depth]);
+
+  // Wrap each Scene-consuming screen to receive hue/depth
+  return (
+    <AYTweakContext.Provider value={tweaks}>
+      <DesignCanvas title="A-Y · ای‌وای" subtitle={<span dir="rtl">یک داستان در دنیای پیکسلی — از AI نترس، ازش استفاده کن</span>}>
+        <DCSection id="landing" title="صفحهٔ فرود">
+          <DCArtboard id="landing" label="Landing · موبایل" width={448} height={1960}>
+            <LandingPage/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="flow" title="جریان محصول">
+          <DCArtboard id="onboarding" label="۰۱ · شروع سفر" width={390} height={844}>
+            <OnboardingScreen/>
+          </DCArtboard>
+          <DCArtboard id="loader" label="۰۲ · تحلیل" width={390} height={844}>
+            <LoaderScreen/>
+          </DCArtboard>
+          <DCArtboard id="roadmap-a" label="۰۳ · نقشه (نسخه الف)" width={390} height={844}>
+            <RoadmapScreen variant="a"/>
+          </DCArtboard>
+          <DCArtboard id="roadmap-b" label="۰۳ · نقشه (نسخه ب — جدول زمانی)" width={390} height={844}>
+            <RoadmapScreen variant="b"/>
+          </DCArtboard>
+          <DCArtboard id="pricing" label="۰۴ · پلن‌ها" width={390} height={844}>
+            <PricingScreen/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="chat" title="مسیریاب — چت">
+          <DCArtboard id="chat-empty" label="۰۵ · خالی + پیشنهاد" width={390} height={844}>
+            <ChatEmpty/>
+          </DCArtboard>
+          <DCArtboard id="chat-active" label="۰۵ · مکالمه + نتیجه ابزار" width={390} height={844}>
+            <ChatActive/>
+          </DCArtboard>
+          <DCArtboard id="chat-typing" label="۰۵ · در حال تایپ" width={390} height={844}>
+            <ChatTyping/>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection title="Scene">
+          <TweakRadio
+            label="Accent hue"
+            value={tweaks.hue}
+            options={[
+              { value: 'emerald', label: 'Emerald' },
+              { value: 'teal',    label: 'Teal' },
+              { value: 'cyan',    label: 'Cyan' },
+              { value: 'lime',    label: 'Lime' },
+            ]}
+            onChange={v => setTweak('hue', v)}
+          />
+          <TweakSlider
+            label="Dark depth"
+            value={tweaks.depth}
+            min={0.4} max={1.4} step={0.05}
+            onChange={v => setTweak('depth', v)}
+            format={v => `${v.toFixed(2)}×`}
+          />
+        </TweakSection>
+      </TweaksPanel>
+    </AYTweakContext.Provider>
+  );
+}
+
+const AYTweakContext = React.createContext({ hue: 'emerald', depth: 1 });
+
+// Patch <Scene> to read tweaks from context when not explicitly overridden
+const _OriginalScene = window.Scene;
+window.Scene = function TweakableScene({ hue, depth, ...rest }) {
+  const ctx = React.useContext(AYTweakContext);
+  return <_OriginalScene hue={hue || ctx.hue} depth={depth != null ? depth : ctx.depth} {...rest}/>;
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

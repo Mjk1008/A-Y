@@ -5,6 +5,7 @@ import {
   Send, Loader2, Plus, RefreshCw, PanelRight,
   Trash2, X, MessageSquare, Zap,
 } from "lucide-react";
+import { ChatThinkingBubble } from "@/app/components/LoadingStates";
 
 /* ─── Types ─── */
 type Mode = "career" | "free";
@@ -617,7 +618,7 @@ export function ChatClient({
                     borderRadius: "16px 16px 16px 4px",
                   }),
                 }}>
-                  {msg.content || (msg.streaming ? <TypingDots /> : null)}
+                  {msg.content || (msg.streaming ? <ChatThinkingBubble /> : null)}
                   {msg.streaming && msg.content && (
                     <span style={{
                       display: "inline-block", width: 2, height: 14,

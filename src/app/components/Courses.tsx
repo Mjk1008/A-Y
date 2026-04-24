@@ -1,6 +1,7 @@
 "use client";
 
-import { PlayCircle, Star, Clock, ExternalLink, Loader2, Search } from "lucide-react";
+import { PlayCircle, Star, Clock, ExternalLink, Search } from "lucide-react";
+import { SkeletonList } from "@/app/components/LoadingStates";
 import { useEffect, useState, useCallback } from "react";
 
 interface Course {
@@ -99,9 +100,7 @@ export default function Courses({ limit = 3 }: { limit?: number }) {
 
         {/* Content */}
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-ink-600" />
-          </div>
+          <SkeletonList count={4} />
         ) : courses.length > 0 ? (
           <div className="space-y-3">
             {courses.map((c) => (

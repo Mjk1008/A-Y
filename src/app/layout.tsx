@@ -3,6 +3,7 @@ import "./globals.css";
 import "@fontsource-variable/vazirmatn";
 import LenisProvider from "./components/LenisProvider";
 import { ThemeProvider } from "@/app/components/ThemeProvider";
+import { PageProgressBar, OfflineDetector } from "@/app/components/LoadingStates";
 
 export const metadata: Metadata = {
   title: "A-Y | ای‌وای — استاد AI شو، نه قربانی",
@@ -20,6 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fa" dir="rtl">
       <head />
       <body className="min-h-screen" style={{ fontFamily: "'Vazirmatn Variable', 'Vazirmatn', system-ui, sans-serif", background: "#020306", color: "#e8efea" }}>
+        <PageProgressBar />
+        <OfflineDetector />
         <LenisProvider />
         <ThemeProvider>
           {children}

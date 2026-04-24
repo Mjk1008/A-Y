@@ -12,6 +12,9 @@ const TABS = [
   { href: "/settings",  icon: Settings,        label: "تنظیمات" },
 ];
 
+// Also export tab config for use in other components
+export const NAV_TABS = TABS;
+
 export function BottomNav() {
   const pathname = usePathname();
 
@@ -32,16 +35,14 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-1 flex-col items-center gap-1 px-2 py-3 transition-colors ${
+              className={`relative flex flex-1 flex-col items-center gap-1 px-2 py-3 transition-colors ${
                 active ? "text-emerald-400" : "text-ink-600 hover:text-ink-400"
               }`}
             >
               <Icon className={`h-5 w-5 transition-transform ${active ? "scale-110" : ""}`} />
               <span className="text-[10px] font-medium leading-none">{label}</span>
               {active && (
-                <span className="absolute bottom-0 h-0.5 w-8 rounded-full bg-emerald-400"
-                  style={{ marginBottom: "env(safe-area-inset-bottom)" }}
-                />
+                <span className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-emerald-400" />
               )}
             </Link>
           );

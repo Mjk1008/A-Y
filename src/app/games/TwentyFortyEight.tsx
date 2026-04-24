@@ -95,7 +95,7 @@ function fontSize(val: number | null) {
   return "1.3rem";
 }
 
-export function TwentyFortyEightGame() {
+export function TwentyFortyEightGame({ onGameOver }: { onGameOver?: (score: number) => void } = {}) {
   const [grid, setGrid] = useState<Grid>(init);
   const [score, setScore] = useState(0);
   const [best, setBestState] = useState(getBest);
@@ -112,6 +112,13 @@ export function TwentyFortyEightGame() {
   useEffect(() => { scoreRef.current = score; }, [score]);
   useEffect(() => { bestRef.current = best; }, [best]);
   useEffect(() => { wonRef.current = won; }, [won]);
+
+  useEffect(() => {
+    if (over) {
+      const t = setTimeout(() => onGameOver?.(score), 1800);
+      return () => clearTimeout(t);
+    }
+  }, [over, score, onGameOver]);
 
   const handleDir = useCallback((dir: Dir) => {
     const { grid: next, score: gained, moved } = move(gridRef.current, dir);

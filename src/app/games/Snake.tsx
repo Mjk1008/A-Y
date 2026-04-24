@@ -29,7 +29,7 @@ function setBest(v: number) {
   if (typeof window !== "undefined") localStorage.setItem("snake-best", String(v));
 }
 
-export function SnakeGame() {
+export function SnakeGame({ onGameOver }: { onGameOver?: (score: number) => void } = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const touchRef = useRef({ x: 0, y: 0 });
   const stateRef = useRef({
@@ -47,6 +47,13 @@ export function SnakeGame() {
   const rafRef = useRef<number | null>(null);
   const lastTickRef = useRef(0);
   const flashRef = useRef(0); // food-eat flash frame count
+
+  useEffect(() => {
+    if (phase === "over") {
+      const t = setTimeout(() => onGameOver?.(score), 1800);
+      return () => clearTimeout(t);
+    }
+  }, [phase, score, onGameOver]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;

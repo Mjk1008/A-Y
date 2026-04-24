@@ -45,7 +45,7 @@ function getStars(moves: number): number {
   return 1;
 }
 
-export function MemoryGame() {
+export function MemoryGame({ onGameOver }: { onGameOver?: (score: number) => void } = {}) {
   const [cards, setCards] = useState<Card[]>(createCards);
   const [flipped, setFlipped] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
@@ -56,6 +56,14 @@ export function MemoryGame() {
   const [flashIds, setFlashIds] = useState<Set<number>>(new Set());
 
   const elapsed = useTimer(started && !won);
+
+  useEffect(() => {
+    if (won) {
+      const finalScore = Math.max(100, 1000 - moves * 15 - elapsed * 3);
+      const t = setTimeout(() => onGameOver?.(finalScore), 1800);
+      return () => clearTimeout(t);
+    }
+  }, [won, moves, elapsed, onGameOver]);
 
   const restart = () => {
     setCards(createCards());

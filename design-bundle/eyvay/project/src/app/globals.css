@@ -1,0 +1,348 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Lenis smooth scroll — required baseline ─────────────────────
+   Lenis adds these classes to <html> when active. The rules below are
+   the canonical setup from the Lenis docs — they let Lenis control the
+   scroll while keeping nested scrollable regions (tagged with the
+   [data-lenis-prevent] attribute) working correctly.                  */
+html.lenis, html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+:root {
+  color-scheme: dark;
+  --bg: #020306;
+  --text: #e8efea;
+}
+
+html {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Better Persian number + glyph rendering */
+  font-feature-settings: "ss02", "ss03", "cv01", "kern", "liga";
+  font-variant-numeric: proportional-nums;
+  -webkit-text-size-adjust: 100%;
+  /* Fallback only — the fixed video covers this once loaded */
+  scroll-behavior: auto;   /* do NOT smooth — fights rAF scroll driver */
+}
+
+body {
+  min-height: 100%;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1.7;
+  letter-spacing: 0;
+  /* NOTE: do NOT set transform/filter/perspective on body — it would
+     create a new containing block and break <ScrollVideoBackground>'s
+     position: fixed stacking relative to the viewport. */
+}
+
+/* Tighter tracking for Persian display */
+h1, h2, h3 {
+  letter-spacing: -0.01em;
+  font-feature-settings: "ss02", "ss03", "cv01", "kern", "liga";
+}
+
+/* Persian digits look heavier — nudge to feel balanced */
+.pn { font-variant-numeric: tabular-nums; }
+
+/* ─── Custom scrollbar ─────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1f1f2e; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2b2b3d; }
+
+/* ─── Component layer ──────────────────────────────── */
+@layer components {
+
+  /* ── Buttons ──────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white transition-all duration-200
+    shadow-[0_8px_32px_-8px_rgba(6,182,212,0.55)]
+    hover:bg-brand-400 hover:shadow-[0_12px_40px_-8px_rgba(6,182,212,0.7)]
+    active:scale-[0.98] active:-translate-y-px
+    disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-ink-600 px-6 py-3 text-sm font-medium text-ink-100 transition-all duration-200
+    hover:border-ink-500 hover:bg-ink-700/40
+    active:scale-[0.98];
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-brand-500/50 px-6 py-3 text-sm font-medium text-brand-300 transition-all duration-200
+    hover:border-brand-500/80 hover:bg-brand-500/10
+    active:scale-[0.98];
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-accent-500 px-6 py-3 text-sm font-semibold text-white transition-all duration-200
+    shadow-[0_8px_32px_-8px_rgba(139,92,246,0.6)]
+    hover:bg-accent-400
+    active:scale-[0.98];
+  }
+
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gold-500 px-6 py-3 text-sm font-semibold text-ink-950 transition-all duration-200
+    shadow-[0_8px_32px_-8px_rgba(245,158,11,0.55)]
+    hover:bg-gold-400
+    active:scale-[0.98];
+  }
+
+  /* ── Luxury buttons ───────────────────────────── */
+  .btn-lux {
+    @apply inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-ink-950 transition-all duration-200
+    active:scale-[0.98];
+    background: linear-gradient(135deg, #6ee7b7 0%, #34d399 55%, #10b981 100%);
+    box-shadow:
+      0 10px 30px -10px rgba(16,185,129,0.55),
+      inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .btn-lux:hover {
+    box-shadow:
+      0 14px 40px -10px rgba(16,185,129,0.75),
+      inset 0 1px 0 rgba(255,255,255,0.35);
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost-lux {
+    @apply inline-flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-medium transition-all duration-200
+    active:scale-[0.98];
+    color: #d4d4ea;
+    border-color: rgba(52,211,153,0.25);
+    background: linear-gradient(180deg, rgba(52,211,153,0.06) 0%, rgba(21,21,31,0.35) 100%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .btn-ghost-lux:hover {
+    border-color: rgba(52,211,153,0.5);
+    background: linear-gradient(180deg, rgba(52,211,153,0.12) 0%, rgba(21,21,31,0.45) 100%);
+    color: #ecfeff;
+  }
+
+  /* ── Cards ─────────────────────────────────────── */
+  .card {
+    @apply rounded-2xl border border-white/[0.06] bg-ink-800/40 p-6;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-300 hover:border-white/[0.12] hover:bg-ink-800/60;
+  }
+
+  /* ── Form inputs ───────────────────────────────── */
+  .input-field {
+    @apply w-full rounded-xl border border-ink-700 bg-ink-800/60 px-4 py-3 text-sm text-ink-100
+    placeholder:text-ink-500
+    transition-colors
+    focus:border-brand-500/60 focus:outline-none focus:ring-1 focus:ring-brand-500/20;
+  }
+
+  /* ── Chips ─────────────────────────────────────── */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-ink-800/50 px-3 py-1 text-xs text-ink-200;
+  }
+  .chip-brand  { @apply inline-flex items-center gap-1.5 rounded-full border border-brand-500/30  bg-brand-500/10  px-3 py-1 text-xs text-brand-300; }
+  .chip-accent { @apply inline-flex items-center gap-1.5 rounded-full border border-accent-500/30 bg-accent-500/10 px-3 py-1 text-xs text-accent-300; }
+  .chip-gold   { @apply inline-flex items-center gap-1.5 rounded-full border border-gold-500/35   bg-gold-500/10   px-3 py-1 text-xs text-gold-300; }
+  .chip-leaf   { @apply inline-flex items-center gap-1.5 rounded-full border border-leaf-500/30   bg-leaf-500/10   px-3 py-1 text-xs text-leaf-300; }
+
+  /* ── Section label ─────────────────────────────── */
+  .section-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.3em] text-ink-400;
+  }
+
+  /* ── Pro badge ─────────────────────────────────── */
+  .pro-badge {
+    @apply inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-gold-500 to-gold-400 px-2 py-0.5 text-[10px] font-bold text-ink-950;
+  }
+}
+
+/* ─── Text gradients ───────────────────────────────── */
+.text-gradient {
+  background: linear-gradient(120deg, #67e8f9 0%, #22d3ee 55%, #0891b2 100%);
+  background-size: 200% 200%;
+  animation: gradientPan 8s ease infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.text-gradient-violet {
+  background: linear-gradient(120deg, #c4b5fd 0%, #a78bfa 55%, #7c3aed 100%);
+  background-size: 200% 200%;
+  animation: gradientPan 8s ease infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.text-gradient-lux {
+  background: linear-gradient(120deg, #6ee7b7 0%, #34d399 40%, #fcd34d 100%);
+  background-size: 220% 220%;
+  animation: gradientPan 9s ease infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.text-gradient-gold {
+  background: linear-gradient(120deg, #fcd34d 0%, #fbbf24 55%, #d97706 100%);
+  background-size: 200% 200%;
+  animation: gradientPan 8s ease infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ─── Shimmer loader ────────────────────────────────── */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.5s linear infinite;
+}
+
+/* ─── Reveal-on-scroll ─────────────────────────────── */
+/* Kept snappy + blur-free so scroll stays buttery smooth                */
+.reveal {
+  opacity: 0;
+  transition:
+    opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal-up        { transform: translate3d(0, 22px, 0); }
+.reveal-scale     { transform: scale(0.96); }
+.reveal-fade      { /* opacity only */ }
+.reveal-slide-right { transform: translate3d(-22px, 0, 0); }
+.reveal-slide-left  { transform: translate3d(22px, 0, 0); }
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ─── Glass system (tonal variants) ────────────────── */
+.glass {
+  background: linear-gradient(180deg, rgba(31,46,40,0.65) 0%, rgba(18,30,24,0.55) 100%);
+  border: 1px solid rgba(110,231,183,0.10);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 24px 60px rgba(0,0,0,0.35);
+}
+.glass-strong {
+  background: linear-gradient(180deg, rgba(31,46,40,0.80) 0%, rgba(18,30,24,0.75) 100%);
+  border: 1px solid rgba(110,231,183,0.18);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-radius: 22px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 24px 60px rgba(0,0,0,0.4);
+}
+.glass-violet {
+  background: linear-gradient(180deg, rgba(139,92,246,0.14) 0%, rgba(21,21,31,0.60) 100%);
+  border: 1px solid rgba(167,139,250,0.22);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-radius: 20px;
+}
+.glass-gold {
+  background: linear-gradient(180deg, rgba(245,158,11,0.14) 0%, rgba(21,21,31,0.60) 100%);
+  border: 1px solid rgba(251,191,36,0.25);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-radius: 20px;
+}
+.glass-leaf {
+  background: linear-gradient(180deg, rgba(16,185,129,0.14) 0%, rgba(21,21,31,0.60) 100%);
+  border: 1px solid rgba(52,211,153,0.22);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-radius: 20px;
+}
+
+/* ─── Horizontal scroll utility ───────────────────── */
+.h-scroll {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.h-scroll::-webkit-scrollbar { display: none; }
+.snap-center { scroll-snap-align: center; }
+
+/* ─── Marquee ──────────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  gap: 2.5rem;
+  width: max-content;
+  animation: marquee 38s linear infinite;
+}
+
+/* ─── Pixel Universe Scene animations ─────────────────── */
+@keyframes ay-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-10px) rotate(3deg); }
+}
+@keyframes ay-spin {
+  from { transform: translate(-50%, 0) rotate(0deg); }
+  to   { transform: translate(-50%, 0) rotate(360deg); }
+}
+@keyframes ay-twinkle {
+  0%, 100% { opacity: 0.2; }
+  50%      { opacity: 0.95; }
+}
+@keyframes ay-run-bob {
+  from { transform: translate(-50%, -100%) translateY(0); }
+  to   { transform: translate(-50%, -100%) translateY(-2px); }
+}
+@keyframes ay-breathe {
+  0%, 100% { transform: translate(-50%, -100%) scale(1); }
+  50%      { transform: translate(-50%, -100%) scale(1.015); }
+}
+
+/* ─── Mesh / noise helpers ─────────────────────────── */
+.mesh-violet {
+  background-image:
+    radial-gradient(ellipse 60% 40% at 30% 30%, rgba(139,92,246,0.18) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 80% 70%, rgba(6,182,212,0.12)  0%, transparent 50%);
+}
+.mesh-gold {
+  background-image:
+    radial-gradient(ellipse 60% 40% at 70% 30%, rgba(245,158,11,0.16) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(139,92,246,0.10) 0%, transparent 50%);
+}
+
+/* ─── Subtle grain — fixed + pointer-none ──────────── */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}

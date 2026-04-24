@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Logo } from "@/app/components/Logo";
+import { AnalysisLoading, SuccessScreen } from "@/app/components/LoadingStates";
 
 const INDUSTRIES = [
   "توسعه نرم‌افزار",
@@ -37,6 +38,12 @@ const INDUSTRIES = [
 ];
 
 const STEP_LABELS = ["اطلاعات پایه", "مهارت‌ها", "رزومه"];
+const LOADING_STEPS = [
+  "در حال ذخیره پروفایل...",
+  "در حال خواندن رزومه...",
+  "هوش مصنوعی داره تحلیل می‌کنه...",
+  "نقشهٔ مسیر در حال ساخته شدن...",
+];
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -44,6 +51,8 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [analyzeView, setAnalyzeView] = useState<"form" | "loading" | "success" | "error">("form");
+  const [loadingStep, setLoadingStep] = useState(0);
   const [form, setForm] = useState({
     nickname: "",
     full_name: "",
@@ -71,10 +80,13 @@ export default function OnboardingPage() {
   async function submit() {
     setLoading(true);
     setError(null);
+    setAnalyzeView("loading");
+    setLoadingStep(0);
 
     try {
       let resumeParsedText: string | undefined;
       if (resumeFile) {
+        setLoadingStep(1);
         const fd = new FormData();
         fd.append("file", resumeFile);
         const parseRes = await fetch("/api/parse-resume", {
@@ -87,6 +99,7 @@ export default function OnboardingPage() {
         }
       }
 
+      setLoadingStep(resumeFile ? 2 : 1);
       const profileRes = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -108,17 +121,23 @@ export default function OnboardingPage() {
         throw new Error(j.error || "خطا در ذخیره پروفایل");
       }
 
+      setLoadingStep(3);
       const analyzeRes = await fetch("/api/analyze", { method: "POST" });
       if (!analyzeRes.ok) {
         const j = await analyzeRes.json().catch(() => ({}));
         throw new Error(j.error || "خطا در تحلیل");
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      setAnalyzeView("success");
+      // auto-redirect after 2.5s if user doesn't click
+      setTimeout(() => {
+        router.push("/dashboard");
+        router.refresh();
+      }, 2500);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "خطای نامشخص";
       setError(msg);
+      setAnalyzeView("error");
     } finally {
       setLoading(false);
     }
@@ -127,6 +146,95 @@ export default function OnboardingPage() {
   const canNext1 =
     form.full_name && form.age && form.job_title && form.industry;
   const canNext2 = form.years_experience && form.skills.length >= 2;
+
+  // ── Loader screen ──────────────────────────────────────────────────
+  if (analyzeView === "loading") {
+    return <AnalysisLoading step={loadingStep} />;
+  }
+
+  // ── Success screen ─────────────────────────────────────────────────
+  if (analyzeView === "success") {
+    return (
+      <SuccessScreen
+        onContinue={() => {
+          router.push("/dashboard");
+          router.refresh();
+        }}
+      />
+    );
+  }
+
+  // ── Error screen ──────────────────────────────────────────────────
+  if (analyzeView === "error") {
+    return (
+      <div
+        className="flex min-h-[100dvh] flex-col items-center justify-center px-6 text-center"
+        style={{ background: "#020306", color: "#e8efea" }}
+        dir="rtl"
+      >
+        <div
+          className="pointer-events-none fixed inset-0 -z-10"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 40% at 50% 40%, rgba(239,68,68,0.06), transparent 60%)",
+          }}
+        />
+
+        {/* Error icon */}
+        <div
+          style={{
+            width: 80, height: 80, borderRadius: 24, marginBottom: 24,
+            background: "rgba(239,68,68,0.10)",
+            border: "1px solid rgba(239,68,68,0.25)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 36,
+          }}
+        >
+          ⚠️
+        </div>
+
+        <h2 className="mb-2 text-2xl font-black tracking-tight">مشکلی پیش اومد</h2>
+        <p className="mb-2 text-sm text-ink-400 max-w-xs leading-relaxed">
+          {error || "خطا در تحلیل. لطفاً دوباره امتحان کن."}
+        </p>
+        <p className="mb-8 text-xs text-ink-700">اطلاعاتت ذخیره شده — فقط تحلیل باید دوباره اجرا بشه</p>
+
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button
+            type="button"
+            onClick={() => {
+              setAnalyzeView("form");
+              setError(null);
+              submit();
+            }}
+            className="btn-primary justify-center"
+          >
+            <Loader2 className="h-4 w-4" />
+            دوباره امتحان کن
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAnalyzeView("form");
+              setError(null);
+              setLoading(false);
+            }}
+            className="btn-ghost justify-center"
+          >
+            برگشت به فرم
+          </button>
+        </div>
+
+        <p className="mt-8 text-[11px] text-ink-700">
+          اگه مشکل ادامه داشت،{" "}
+          <a href="mailto:support@a-y.ir" className="text-emerald-500 underline">
+            پشتیبانی
+          </a>{" "}
+          رو خبر کن
+        </p>
+      </div>
+    );
+  }
 
   // ── Step 0: Welcome / Nickname ──────────────────────────────────────
   if (step === 0) {

@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<title>A-Y · ای‌وای — راهنمای شغلی هوش مصنوعی</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Vazirmatn as Peyda substitute — Peyda isn't reliably available on a public CDN -->
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  html, body { margin: 0; padding: 0; background: #020306; overflow-x: hidden; }
+  body {
+    font-family: 'Peyda', 'Vazirmatn', sans-serif;
+    color: #e8efea;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  /* Storytelling animations */
+  @keyframes ay-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50%      { transform: translateY(-10px) rotate(3deg); }
+  }
+  @keyframes ay-spin {
+    from { transform: translate(-50%, 0) rotate(0deg); }
+    to   { transform: translate(-50%, 0) rotate(360deg); }
+  }
+  @keyframes ay-twinkle {
+    0%, 100% { opacity: 0.2; }
+    50%      { opacity: 0.95; }
+  }
+  @keyframes ay-run-bob {
+    from { transform: translate(-50%, -100%) translateY(0); }
+    to   { transform: translate(-50%, -100%) translateY(-2px); }
+  }
+  @keyframes ay-breathe {
+    0%, 100% { transform: translate(-50%, -100%) scale(1); }
+    50%      { transform: translate(-50%, -100%) scale(1.015); }
+  }
+  @keyframes ay-pulse-dot {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.4); }
+  }
+  @keyframes ay-caret {
+    0%, 50%   { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+  @keyframes ay-typing {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30%           { transform: translateY(-4px); opacity: 1; }
+  }
+  @keyframes ay-fade-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Canvas background */
+  html { background: #020306; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script src="ay-tokens.js"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="ay-scene.jsx"></script>
+<script type="text/babel" src="ay-primitives.jsx"></script>
+<script type="text/babel" src="ay-landing.jsx"></script>
+<script type="text/babel" src="ay-app-screens.jsx"></script>
+<script type="text/babel" src="ay-chat.jsx"></script>
+<script type="text/babel" src="ay-more-screens.jsx"></script>
+<script type="text/babel" src="ay-spec-v2.jsx"></script>
+<script type="text/babel" src="ay-mascot.jsx"></script>
+<script type="text/babel" src="ay-themes.jsx"></script>
+<script type="text/babel" src="ay-new-screens.jsx"></script>
+<script type="text/babel" src="ay-games-suite.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+// hooks already destructured in ay-scene.jsx
+
+// Tweakable defaults — accent hue, dark depth, and global theme
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "hue": "emerald",
+  "depth": 1,
+  "theme": "dark"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  // Expose theme setter so screens (Settings) can change theme imperatively
+  useEffect(() => {
+    window.__aySetTheme = (key) => setTweak('theme', key);
+    return () => { delete window.__aySetTheme; };
+  }, [setTweak]);
+
+  // Re-render scenes when hue/depth change by injecting overrides
+  useEffect(() => {
+    const style = document.getElementById('ay-tweak-style') || (() => {
+      const s = document.createElement('style');
+      s.id = 'ay-tweak-style';
+      document.head.appendChild(s);
+      return s;
+    })();
+    style.textContent = '';
+  }, [tweaks.hue, tweaks.depth]);
+
+  // Wrap each Scene-consuming screen to receive hue/depth
+  return (
+    <AYTweakContext.Provider value={tweaks}>
+    <ThemedRoot themeKey={tweaks.theme}>
+      <DesignCanvas title="A-Y · ای‌وای" subtitle={<span dir="rtl">یک داستان در دنیای پیکسلی — از AI نترس، ازش استفاده کن</span>}>
+        <DCSection id="landing" title="صفحهٔ فرود">
+          <DCArtboard id="landing" label="Landing · موبایل" width={448} height={1960}>
+            <LandingPage/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="flow" title="جریان محصول">
+          <DCArtboard id="onboarding" label="۰۱ · شروع سفر" width={390} height={844}>
+            <OnboardingScreen/>
+          </DCArtboard>
+          <DCArtboard id="loader" label="۰۲ · تحلیل" width={390} height={844}>
+            <LoaderScreen/>
+          </DCArtboard>
+          <DCArtboard id="roadmap-a" label="۰۳ · نقشه (نسخه الف)" width={390} height={844}>
+            <RoadmapScreen variant="a"/>
+          </DCArtboard>
+          <DCArtboard id="roadmap-b" label="۰۳ · نقشه (نسخه ب — جدول زمانی)" width={390} height={844}>
+            <RoadmapScreen variant="b"/>
+          </DCArtboard>
+          <DCArtboard id="pricing" label="۰۴ · پلن‌ها" width={390} height={844}>
+            <PricingScreen/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="chat" title="مسیریاب — چت">
+          <DCArtboard id="chat-empty" label="۰۵ · خالی + پیشنهاد" width={390} height={844}>
+            <ChatEmpty/>
+          </DCArtboard>
+          <DCArtboard id="chat-active" label="۰۵ · مکالمه + نتیجه ابزار" width={390} height={844}>
+            <ChatActive/>
+          </DCArtboard>
+          <DCArtboard id="chat-typing" label="۰۵ · در حال تایپ" width={390} height={844}>
+            <ChatTyping/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="auth" title="ورود">
+          <DCArtboard id="login-phone" label="ورود · شماره" width={390} height={844}>
+            <LoginPhoneScreen/>
+          </DCArtboard>
+          <DCArtboard id="login-otp" label="ورود · کد تأیید" width={390} height={844}>
+            <LoginOTPScreen/>
+          </DCArtboard>
+          <DCArtboard id="resume" label="آپلود رزومه" width={390} height={844}>
+            <ResumeUploadScreen/>
+          </DCArtboard>
+          <DCArtboard id="loader-error" label="تحلیل · خطا" width={390} height={844}>
+            <LoaderErrorScreen/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="core" title="کانون اپلیکیشن">
+          <DCArtboard id="dashboard" label="داشبورد خانه" width={390} height={844}>
+            <DashboardScreen/>
+          </DCArtboard>
+          <DCArtboard id="jobs" label="شغل‌های مناسب" width={390} height={844}>
+            <JobsScreen/>
+          </DCArtboard>
+          <DCArtboard id="ai-tools" label="ابزارهای AI" width={390} height={844}>
+            <AIToolsScreen/>
+          </DCArtboard>
+          <DCArtboard id="courses" label="دوره‌های پیشنهادی" width={390} height={844}>
+            <CoursesScreen/>
+          </DCArtboard>
+          <DCArtboard id="week-detail" label="جزئیات هفته" width={390} height={844}>
+            <WeekDetailScreen/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="account" title="حساب کاربری">
+          <DCArtboard id="profile" label="پروفایل" width={390} height={844}>
+            <ProfileScreen/>
+          </DCArtboard>
+          <DCArtboard id="edit-profile" label="ویرایش پروفایل" width={390} height={844}>
+            <EditProfileScreen/>
+          </DCArtboard>
+          <DCArtboard id="notifications" label="اعلان‌ها" width={390} height={844}>
+            <NotificationsScreen/>
+          </DCArtboard>
+          <DCArtboard id="success" label="پرداخت موفق" width={390} height={844}>
+            <PaymentSuccessScreen/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="new-v3" title="V3 — پیکسل‌مسکات + تم">
+          <DCArtboard id="landing-v3" label="لندینگ · مسکات‌محور" width={448} height={1800}>
+            <LandingV3/>
+          </DCArtboard>
+          <DCArtboard id="chat-v2" label="چت · مسکات + ابزار" width={448} height={900}>
+            <ChatV2/>
+          </DCArtboard>
+          <DCArtboard id="games" label="بازی‌ها · پیکسلی" width={448} height={900}>
+            <GamesScreen/>
+          </DCArtboard>
+          <DCArtboard id="admin" label="کنسول ادمین" width={448} height={900}>
+            <AdminConsole/>
+          </DCArtboard>
+          <DCArtboard id="courses-v2" label="دوره‌ها · V2" width={448} height={900}>
+            <CoursesV2/>
+          </DCArtboard>
+          <DCArtboard id="jobs-v2" label="شغل‌ها · V2" width={448} height={900}>
+            <JobsV2/>
+          </DCArtboard>
+          <DCArtboard id="settings-themed" label="تنظیمات · سوییچر تم" width={448} height={900}>
+            <SettingsThemedScreen/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="spec-v2" title="اسپک — V2 (flat dark)">
+          <DCArtboard id="v2-login-phone" label="/login · شماره" width={448} height={900}>
+            <LoginPhoneV2/>
+          </DCArtboard>
+          <DCArtboard id="v2-login-otp" label="/login · کد تأیید" width={448} height={900}>
+            <LoginOTPV2/>
+          </DCArtboard>
+          <DCArtboard id="v2-onb-1" label="/onboarding · قدم ۱" width={448} height={900}>
+            <OnboardingWizardV2 step={1}/>
+          </DCArtboard>
+          <DCArtboard id="v2-onb-2" label="/onboarding · قدم ۲" width={448} height={900}>
+            <OnboardingWizardV2 step={2}/>
+          </DCArtboard>
+          <DCArtboard id="v2-onb-3" label="/onboarding · قدم ۳" width={448} height={900}>
+            <OnboardingWizardV2 step={3}/>
+          </DCArtboard>
+          <DCArtboard id="v2-onb-4" label="/onboarding · قدم ۴" width={448} height={900}>
+            <OnboardingWizardV2 step={4}/>
+          </DCArtboard>
+          <DCArtboard id="v2-dashboard" label="/dashboard" width={448} height={900}>
+            <DashboardV2/>
+          </DCArtboard>
+          <DCArtboard id="v2-profile" label="/profile · ویرایش" width={448} height={900}>
+            <ProfileEditV2/>
+          </DCArtboard>
+          <DCArtboard id="v2-billing" label="/billing" width={448} height={900}>
+            <BillingV2/>
+          </DCArtboard>
+          <DCArtboard id="v2-checkout" label="/billing/checkout" width={448} height={900}>
+            <CheckoutV2/>
+          </DCArtboard>
+          <DCArtboard id="v2-success" label="/billing/success" width={448} height={900}>
+            <BillingSuccessV2/>
+          </DCArtboard>
+          <DCArtboard id="v2-failed" label="/billing/failed" width={448} height={900}>
+            <BillingFailedV2/>
+          </DCArtboard>
+          <DCArtboard id="v2-settings" label="/settings" width={448} height={900}>
+            <SettingsV2/>
+          </DCArtboard>
+          <DCArtboard id="v2-help" label="/help" width={448} height={900}>
+            <HelpV2/>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="games-suite" title="بازی‌ها — تجربهٔ کامل">
+          <DCArtboard id="games-hub" label="هاب بازی‌ها" width={448} height={900}>
+            <GamesHub/>
+          </DCArtboard>
+          <DCArtboard id="snake-intro" label="۰۱ مار · شروع" width={448} height={900}>
+            <GameIntro gameId="snake"/>
+          </DCArtboard>
+          <DCArtboard id="snake-play" label="۰۱ مار · بازی" width={448} height={900}>
+            <GamePlayFrame gameId="snake"/>
+          </DCArtboard>
+          <DCArtboard id="snake-result" label="۰۱ مار · رکورد جدید" width={448} height={900}>
+            <GameResult gameId="snake" won={true}/>
+          </DCArtboard>
+          <DCArtboard id="snake-board" label="۰۱ مار · لیدربورد" width={448} height={900}>
+            <GameLeaderboard gameId="snake"/>
+          </DCArtboard>
+          <DCArtboard id="2048-intro" label="۰۲ ۲۰۴۸ · شروع" width={448} height={900}>
+            <GameIntro gameId="2048"/>
+          </DCArtboard>
+          <DCArtboard id="2048-play" label="۰۲ ۲۰۴۸ · بازی" width={448} height={900}>
+            <GamePlayFrame gameId="2048"/>
+          </DCArtboard>
+          <DCArtboard id="2048-result" label="۰۲ ۲۰۴۸ · نتیجه" width={448} height={900}>
+            <GameResult gameId="2048" won={false}/>
+          </DCArtboard>
+          <DCArtboard id="2048-board" label="۰۲ ۲۰۴۸ · لیدربورد" width={448} height={900}>
+            <GameLeaderboard gameId="2048"/>
+          </DCArtboard>
+          <DCArtboard id="flappy-intro" label="۰۳ فلپی · شروع" width={448} height={900}>
+            <GameIntro gameId="flappy"/>
+          </DCArtboard>
+          <DCArtboard id="flappy-play" label="۰۳ فلپی · بازی" width={448} height={900}>
+            <GamePlayFrame gameId="flappy"/>
+          </DCArtboard>
+          <DCArtboard id="flappy-result" label="۰۳ فلپی · رکورد جدید" width={448} height={900}>
+            <GameResult gameId="flappy" won={true}/>
+          </DCArtboard>
+          <DCArtboard id="flappy-board" label="۰۳ فلپی · لیدربورد" width={448} height={900}>
+            <GameLeaderboard gameId="flappy"/>
+          </DCArtboard>
+          <DCArtboard id="memory-intro" label="۰۴ حافظه · شروع" width={448} height={900}>
+            <GameIntro gameId="memory"/>
+          </DCArtboard>
+          <DCArtboard id="memory-play" label="۰۴ حافظه · بازی" width={448} height={900}>
+            <GamePlayFrame gameId="memory"/>
+          </DCArtboard>
+          <DCArtboard id="memory-result" label="۰۴ حافظه · نتیجه" width={448} height={900}>
+            <GameResult gameId="memory" won={false}/>
+          </DCArtboard>
+          <DCArtboard id="memory-board" label="۰۴ حافظه · لیدربورد" width={448} height={900}>
+            <GameLeaderboard gameId="memory"/>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection title="Theme">
+          <TweakRadio
+            label="Global theme"
+            value={tweaks.theme}
+            options={[
+              { value: 'dark',  label: 'Dark' },
+              { value: 'cream', label: 'Cream' },
+              { value: 'sky',   label: 'Sky' },
+            ]}
+            onChange={v => setTweak('theme', v)}
+          />
+        </TweakSection>
+        <TweakSection title="Scene">
+          <TweakRadio
+            label="Accent hue"
+            value={tweaks.hue}
+            options={[
+              { value: 'emerald', label: 'Emerald' },
+              { value: 'teal',    label: 'Teal' },
+              { value: 'cyan',    label: 'Cyan' },
+              { value: 'lime',    label: 'Lime' },
+            ]}
+            onChange={v => setTweak('hue', v)}
+          />
+          <TweakSlider
+            label="Dark depth"
+            value={tweaks.depth}
+            min={0.4} max={1.4} step={0.05}
+            onChange={v => setTweak('depth', v)}
+            format={v => `${v.toFixed(2)}×`}
+          />
+        </TweakSection>
+      </TweaksPanel>
+    </ThemedRoot>
+    </AYTweakContext.Provider>
+  );
+}
+
+const AYTweakContext = React.createContext({ hue: 'emerald', depth: 1 });
+
+// Patch <Scene> to read tweaks from context when not explicitly overridden
+const _OriginalScene = window.Scene;
+window.Scene = function TweakableScene({ hue, depth, ...rest }) {
+  const ctx = React.useContext(AYTweakContext);
+  return <_OriginalScene hue={hue || ctx.hue} depth={depth != null ? depth : ctx.depth} {...rest}/>;
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

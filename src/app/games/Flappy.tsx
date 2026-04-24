@@ -32,7 +32,7 @@ const STARS = Array.from({ length: 50 }, (_, i) => ({
   a: 0.15 + (i % 5) * 0.08,
 }));
 
-export function FlappyGame() {
+export function FlappyGame({ onGameOver }: { onGameOver?: (score: number) => void } = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const state = useRef({
     bird: { y: CH / 2, vy: 0 },
@@ -48,6 +48,13 @@ export function FlappyGame() {
   const [phase, setPhase] = useState<"idle" | "running" | "over">("idle");
   const rafRef = useRef<number | null>(null);
   const flapFlash = useRef(0);
+
+  useEffect(() => {
+    if (phase === "over") {
+      const t = setTimeout(() => onGameOver?.(score), 1800);
+      return () => clearTimeout(t);
+    }
+  }, [phase, score, onGameOver]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
