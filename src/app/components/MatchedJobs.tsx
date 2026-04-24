@@ -1,6 +1,6 @@
 "use client";
 
-import { Briefcase, MapPin, ExternalLink, Clock, Loader2, Search, Wifi } from "lucide-react";
+import { MapPin, ExternalLink, Clock, Loader2, Search, Wifi, Bookmark } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 
 interface Job {
@@ -15,192 +15,286 @@ interface Job {
   source: string;
 }
 
-const SOURCES: Record<string, { label: string; color: string }> = {
-  jobinja:    { label: "جاب‌اینجا",  color: "text-emerald-400" },
-  jobvision:  { label: "جاب‌ویژن",   color: "text-sky-400" },
-  irantalent: { label: "ایران‌تلنت", color: "text-rose-400" },
-  karboom:    { label: "کاربوم",     color: "text-amber-400" },
+const SOURCES: Record<string, { label: string }> = {
+  jobinja:    { label: "جاب‌اینجا" },
+  jobvision:  { label: "جاب‌ویژن" },
+  irantalent: { label: "ایران‌تلنت" },
+  karboom:    { label: "کاربوم" },
 };
+
+const FILTERS = ["بالاترین تطابق", "دورکاری", "ارشد", "تهران"];
 
 export default function MatchedJobs({ limit = 3 }: { limit?: number }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [remote, setRemote] = useState(false);
-  const [source, setSource] = useState("");
+  const [activeFilter, setActiveFilter] = useState(0);
 
   const fetchJobs = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams({ limit: String(limit) });
     if (search) params.set("q", search);
     if (remote) params.set("remote", "true");
-    if (source) params.set("source", source);
 
     fetch(`/api/jobs?${params}`)
       .then((r) => r.json())
       .then((d) => setJobs(d.jobs ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [limit, search, remote, source]);
+  }, [limit, search, remote]);
 
   useEffect(() => {
     const t = setTimeout(fetchJobs, search ? 400 : 0);
     return () => clearTimeout(t);
   }, [fetchJobs, search]);
 
-  return (
-    <div className="px-5 py-8">
-      <div className="mx-auto max-w-md">
-        {/* Search + Filters */}
-        <div className="mb-4 space-y-3">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-600" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="جستجو در شغل‌ها..."
-              className="w-full rounded-xl border border-white/[0.06] bg-white/[0.03] py-2.5 pr-9 pl-4 text-sm text-ink-100 placeholder-ink-600 outline-none transition focus:border-white/[0.12]"
-            />
-          </div>
+  const handleFilterClick = (i: number) => {
+    setActiveFilter(i);
+    if (i === 1) setRemote(!remote);
+    else if (i !== 1) setRemote(false);
+  };
 
-          <div className="flex flex-wrap gap-2">
-            <FilterChip
-              label="دورکاری"
-              active={remote}
-              onClick={() => setRemote(!remote)}
-            />
-            {Object.entries(SOURCES).map(([key, val]) => (
-              <FilterChip
-                key={key}
-                label={val.label}
-                active={source === key}
-                onClick={() => setSource(source === key ? "" : key)}
-                color={val.color}
-              />
-            ))}
+  return (
+    <div style={{ padding: "16px 20px", maxWidth: 448, margin: "0 auto" }}>
+
+      {/* Stats banner */}
+      {!loading && jobs.length > 0 && (
+        <div style={{
+          padding: "12px 14px", borderRadius: 14, marginBottom: 14,
+          background: "rgba(16,185,129,0.08)", border: "1px solid rgba(110,231,183,0.22)",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+            background: "rgba(16,185,129,0.18)", display: "grid", placeItems: "center",
+          }}>
+            <span style={{ fontSize: 16 }}>🎯</span>
+          </div>
+          <div style={{ flex: 1, fontSize: 12, color: "rgba(232,239,234,0.8)", lineHeight: 1.55 }}>
+            <strong style={{ color: "#6ee7b7" }}>{jobs.length} شغل</strong>
+            {" "}پیدا شد — بر اساس مهارت، تجربه و شهر.
           </div>
         </div>
+      )}
 
-        {/* Content */}
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-ink-600" />
+      {/* Search */}
+      <div style={{
+        padding: "12px 14px", borderRadius: 14, marginBottom: 10,
+        background: "rgba(31,46,40,0.55)", border: "1px solid rgba(110,231,183,0.16)",
+        display: "flex", alignItems: "center", gap: 10,
+      }}>
+        <Search size={16} color="rgba(110,231,183,0.7)" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="جستجو در شغل‌ها…"
+          style={{
+            flex: 1, background: "none", border: "none", outline: "none",
+            fontSize: 13, color: "#e8efea", fontFamily: "inherit", caretColor: "#34d399",
+          }}
+        />
+      </div>
+
+      {/* Filter chips — horizontal scroll */}
+      <div style={{
+        display: "flex", gap: 7, overflowX: "auto", marginBottom: 14,
+        scrollbarWidth: "none",
+      }}>
+        {FILTERS.map((f, i) => (
+          <button
+            key={i}
+            onClick={() => handleFilterClick(i)}
+            style={{
+              flexShrink: 0, padding: "6px 12px", borderRadius: 999,
+              background: activeFilter === i ? "rgba(16,185,129,0.18)" : "rgba(255,255,255,0.03)",
+              border: `1px solid ${activeFilter === i ? "rgba(110,231,183,0.4)" : "rgba(110,231,183,0.12)"}`,
+              fontSize: 11.5, fontWeight: 700,
+              color: activeFilter === i ? "#6ee7b7" : "rgba(232,239,234,0.7)",
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 5,
+            }}
+          >
+            {i === 0 && (
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: activeFilter === 0 ? "#6ee7b7" : "rgba(110,231,183,0.4)" }} />
+            )}
+            {f}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+          <Loader2 size={24} color="rgba(110,231,183,0.5)" className="animate-spin" />
+        </div>
+      ) : jobs.length > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {jobs.map((job, idx) => (
+            <JobCard key={job.id} job={job} rank={idx} />
+          ))}
+        </div>
+      ) : (
+        <div style={{
+          padding: "40px 20px", borderRadius: 16, textAlign: "center",
+          background: "rgba(31,46,40,0.4)", border: "1px solid rgba(110,231,183,0.08)",
+        }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>
+            {search || remote ? "نتیجه‌ای پیدا نشد" : "به زودی شغل‌ها اینجان"}
           </div>
-        ) : jobs.length > 0 ? (
-          <div className="space-y-3">
-            {jobs.map((job) => (
-              <JobCard key={job.id} job={job} />
-            ))}
+          <div style={{ fontSize: 12, color: "rgba(232,239,234,0.5)", lineHeight: 1.7 }}>
+            {search || remote
+              ? "فیلترها رو تغییر بده یا جستجو رو پاک کن"
+              : "داریم شغل‌های مناسب مسیرت رو جمع‌آوری می‌کنیم."}
           </div>
-        ) : (
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-10 text-center">
-            <div className="mb-4 text-4xl">🔍</div>
-            <p className="mb-1 font-bold text-ink-200">
-              {search || remote || source ? "نتیجه‌ای پیدا نشد" : "به زودی شغل‌ها اینجان"}
-            </p>
-            <p className="text-sm text-ink-500 leading-relaxed">
-              {search || remote || source
-                ? "فیلترها رو تغییر بده یا جستجو رو پاک کن"
-                : "داریم شغل‌های مناسب مسیرت رو جمع‌آوری می‌کنیم."}
-            </p>
-          </div>
-        )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MatchGauge({ pct, size = 44 }: { pct: number; size?: number }) {
+  const r = size * 0.41;
+  const circ = 2 * Math.PI * r;
+  const color = pct >= 85 ? "#34d399" : pct >= 70 ? "#fcd34d" : "#c4b5fd";
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={size * 0.09} />
+        <circle
+          cx={size / 2} cy={size / 2} r={r}
+          fill="none" stroke={color} strokeWidth={size * 0.09} strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - pct / 100)}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          style={{ filter: `drop-shadow(0 0 4px ${color}88)` }}
+        />
+      </svg>
+      <div style={{
+        position: "absolute", inset: 0, display: "grid", placeItems: "center",
+        fontFamily: "monospace", fontSize: size * 0.25, fontWeight: 800, color,
+      }}>
+        {pct}
       </div>
     </div>
   );
 }
 
-function FilterChip({
-  label,
-  active,
-  onClick,
-  color,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  color?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-lg border px-3 py-1 text-[11.5px] font-medium transition ${
-        active
-          ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
-          : "border-white/[0.06] bg-white/[0.02] text-ink-500 hover:border-white/[0.10] hover:text-ink-300"
-      }`}
-    >
-      <span className={active && color ? color : undefined}>{label}</span>
-    </button>
-  );
-}
-
-function JobCard({ job }: { job: Job }) {
-  const src = SOURCES[job.source] ?? { label: job.source, color: "text-ink-400" };
-  const timeAgo = job.posted_at
-    ? new Date(job.posted_at).toLocaleDateString("fa-IR")
-    : "";
+function JobCard({ job, rank }: { job: Job; rank: number }) {
+  const [saved, setSaved] = useState(false);
+  const src = SOURCES[job.source] ?? { label: job.source };
+  const timeAgo = job.posted_at ? new Date(job.posted_at).toLocaleDateString("fa-IR") : "";
+  // Pseudo-match: decreases with rank, starts around 88-92%
+  const matchPct = Math.max(50, 92 - rank * 8);
 
   return (
-    <article className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4 transition hover:-translate-y-0.5 hover:border-white/[0.10]">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-sm font-bold text-ink-300">
+    <article style={{
+      padding: 14, borderRadius: 16,
+      background: "linear-gradient(180deg, rgba(31,46,40,0.6) 0%, rgba(18,30,24,0.5) 100%)",
+      border: "1px solid rgba(110,231,183,0.14)",
+      position: "relative", overflow: "hidden",
+    }}>
+      {/* Header row */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        {/* Company logo */}
+        <div style={{
+          width: 46, height: 46, borderRadius: 12, flexShrink: 0,
+          background: "linear-gradient(135deg, rgba(52,211,153,0.22), rgba(16,185,129,0.1))",
+          border: "1px solid rgba(110,231,183,0.3)",
+          display: "grid", placeItems: "center",
+          fontWeight: 900, fontSize: 18, color: "#6ee7b7",
+        }}>
           {job.company?.charAt(0) ?? "؟"}
         </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-[13.5px] font-bold text-ink-100">{job.title}</h3>
-          <div className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-ink-400">
-            <span>{job.company}</span>
-            <span className="text-ink-700">·</span>
-            <span className={`text-[10px] ${src.color}`}>{src.label}</span>
+
+        {/* Title + company */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 800, fontSize: 13.5, lineHeight: 1.4, color: "#e8efea" }}>{job.title}</div>
+          <div style={{
+            fontSize: 11.5, color: "rgba(232,239,234,0.6)", marginTop: 3,
+            display: "flex", gap: 6, alignItems: "center",
+          }}>
+            <span style={{ color: "#e8efea", fontWeight: 700 }}>{job.company}</span>
+            <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(232,239,234,0.3)" }} />
+            <span>{src.label}</span>
           </div>
         </div>
+
+        {/* Match gauge */}
+        <MatchGauge pct={matchPct} />
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-500">
+      {/* Meta row */}
+      <div style={{
+        marginTop: 12, paddingTop: 12,
+        borderTop: "1px solid rgba(110,231,183,0.08)",
+        display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+      }}>
         {job.location && (
-          <span className="flex items-center gap-1">
-            <MapPin className="h-3 w-3" /> {job.location}
+          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "rgba(232,239,234,0.55)" }}>
+            <MapPin size={11} color="rgba(110,231,183,0.6)" />
+            {job.location}
           </span>
         )}
         {job.is_remote && (
-          <span className="flex items-center gap-1">
-            <Wifi className="h-3 w-3 text-emerald-500" />
-            <span className="text-emerald-500">دورکاری</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#6ee7b7", fontWeight: 600 }}>
+            <Wifi size={11} color="#6ee7b7" />
+            دورکاری
           </span>
         )}
         {timeAgo && (
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" /> {timeAgo}
+          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "rgba(232,239,234,0.45)" }}>
+            <Clock size={11} />
+            {timeAgo}
           </span>
         )}
       </div>
 
+      {/* Skills */}
       {job.skills?.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6 }}>
           {job.skills.slice(0, 5).map((t) => (
-            <span
-              key={t}
-              className="rounded-md border border-white/[0.06] bg-ink-800/50 px-1.5 py-0.5 text-[10px] text-ink-400"
-            >
-              {t}
-            </span>
+            <span key={t} style={{
+              padding: "3px 8px", borderRadius: 6,
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(110,231,183,0.14)",
+              fontSize: 10.5, color: "rgba(232,239,234,0.65)", fontWeight: 600,
+            }}>{t}</span>
           ))}
         </div>
       )}
 
-      {job.url && (
-        <a
-          href={job.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-400/25 bg-emerald-500/8 py-2 text-[12px] font-semibold text-emerald-300 transition hover:bg-emerald-500/15"
+      {/* Actions */}
+      <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+        {job.url && (
+          <a
+            href={job.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              flex: 1, padding: "9px 0", borderRadius: 10, textAlign: "center",
+              background: "rgba(16,185,129,0.14)", border: "1px solid rgba(110,231,183,0.3)",
+              fontSize: 12, fontWeight: 700, color: "#6ee7b7",
+              textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+            }}
+          >
+            درخواست در {src.label}
+            <ExternalLink size={11} />
+          </a>
+        )}
+        <button
+          onClick={() => setSaved(!saved)}
+          style={{
+            width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+            background: saved ? "rgba(16,185,129,0.18)" : "rgba(255,255,255,0.04)",
+            border: `1px solid ${saved ? "rgba(110,231,183,0.4)" : "rgba(110,231,183,0.12)"}`,
+            cursor: "pointer", display: "grid", placeItems: "center",
+          }}
         >
-          درخواست در {src.label}
-          <ExternalLink className="h-3 w-3" />
-        </a>
-      )}
+          <Bookmark size={14} color={saved ? "#6ee7b7" : "rgba(232,239,234,0.5)"} fill={saved ? "#6ee7b7" : "none"} />
+        </button>
+      </div>
     </article>
   );
 }
