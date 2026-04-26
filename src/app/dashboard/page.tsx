@@ -341,6 +341,25 @@ export default async function DashboardPage() {
           />
         </div>
 
+        {/* ── Referral Card ── */}
+        <div className="mt-3 flex items-center gap-4 overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-l from-violet-500/[0.07] to-transparent p-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-2xl">
+            🎁
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-ink-100 text-sm">دعوت دوستت، ۷ روز Pro رایگان</h3>
+            <p className="mt-0.5 text-[11.5px] text-ink-500 leading-relaxed">
+              لینک اختصاصی خودت رو بگیر
+            </p>
+          </div>
+          <Link
+            href="/referral"
+            className="shrink-0 rounded-lg border border-violet-500/30 bg-violet-500/15 px-3 py-1.5 text-[11.5px] font-bold text-violet-300 transition hover:bg-violet-500/25"
+          >
+            دریافت لینک
+          </Link>
+        </div>
+
         {/* ── بیکارم حال ندارم ── */}
         <Link
           href="/games"

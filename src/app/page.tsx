@@ -15,6 +15,7 @@ import {
 import LandingHero from "./components/LandingHero";
 import Reveal from "./components/Reveal";
 import { MascotArt } from "./components/PixelMascot";
+import { LandingPreview } from "./components/LandingPreview";
 import {
   PLANS,
   type Plan,
@@ -30,6 +31,7 @@ export default function Home() {
       <Nav />
       <LandingHero />
       <StatTicker />
+      <LandingPreview />
       <Problem />
       <Journey />
       <SocialProof />
