@@ -119,8 +119,47 @@ export async function POST(req: NextRequest) {
     [referrerId]
   );
 
-  // Grant reward to referrer: 7 days Pro (via subscriptions table extension)
-  // For simplicity, log it as a usage bonus event
+  // Grant reward: actually extend referrer's Pro subscription by 7 days
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  try {
+    const subRes = await pool.query(
+      `SELECT id, expires_at, status FROM subscriptions
+       WHERE user_id=$1 AND status='active'
+       ORDER BY created_at DESC LIMIT 1`,
+      [referrerId]
+    );
+
+    if (subRes.rows.length > 0) {
+      // Extend the active subscription
+      const currentExpiry = new Date(subRes.rows[0].expires_at ?? Date.now());
+      const base    = currentExpiry.getTime() > Date.now() ? currentExpiry.getTime() : Date.now();
+      const newExpiry = new Date(base + SEVEN_DAYS_MS);
+      await pool.query(
+        "UPDATE subscriptions SET expires_at=$1 WHERE id=$2",
+        [newExpiry.toISOString(), subRes.rows[0].id]
+      );
+    } else {
+      // Create a new 7-day Pro subscription for the referrer
+      await pool.query(
+        `INSERT INTO subscriptions
+           (user_id, plan_type, status, started_at, expires_at, amount_toman, billing_cycle)
+         VALUES ($1, 'pro', 'active', NOW(), $2, 0, 'monthly')`,
+        [referrerId, new Date(Date.now() + SEVEN_DAYS_MS).toISOString()]
+      );
+    }
+
+    // Also update users.plan_type so the middleware session refresh picks it up within 2 min
+    await pool.query(
+      "UPDATE users SET plan_type='pro' WHERE id=$1 AND plan_type='free'",
+      [referrerId]
+    ).catch(() => {});
+
+  } catch (e) {
+    console.error("referral subscription extend error:", e);
+    // Don't fail the whole request — still record the referral
+  }
+
+  // Log the reward event
   await pool.query(
     `INSERT INTO usage_logs (user_id, type, metadata)
      VALUES ($1, 'referral_reward', $2)`,

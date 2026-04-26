@@ -70,14 +70,39 @@ export async function GET(req: NextRequest) {
       has_certificate BOOLEAN DEFAULT FALSE, crawled_at TIMESTAMPTZ DEFAULT NOW()
     )`);
 
+    // Check total count (no filter) for seed decision
+    const totalAllTime = parseInt(
+      (await pool.query("SELECT COUNT(*) FROM crawled_courses")).rows[0].count
+    );
+
+    if (totalAllTime === 0) {
+      // Seed curated courses into DB so they're persistent and real
+      for (const c of MOCK_COURSES) {
+        await pool.query(
+          `INSERT INTO crawled_courses
+             (source, title, instructor, platform, url, thumbnail, description,
+              level, duration_hours, price_toman, rating, rating_count,
+              topics, is_farsi, has_certificate, crawled_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, NOW())
+           ON CONFLICT (url) DO UPDATE SET crawled_at=NOW()`,
+          [
+            c.source, c.title, c.instructor, c.platform,
+            c.url + "?seed=" + c.id, c.thumbnail, c.description,
+            c.level, c.duration_hours, c.price_toman,
+            c.rating, c.rating_count, c.topics, c.is_farsi, c.has_certificate,
+          ]
+        ).catch(() => {});
+      }
+    }
+
     const countResult = await pool.query(
       `SELECT COUNT(*) FROM crawled_courses ${where}`,
       values
     );
     const total = parseInt(countResult.rows[0].count);
 
-    if (total === 0) {
-      // Crawler not connected yet — return mock data with filtering applied
+    if (total === 0 && totalAllTime === 0) {
+      // DB seed failed entirely, return in-memory fallback
       let mock = MOCK_COURSES;
       if (q) mock = mock.filter(c => c.title.includes(q) || c.description.includes(q) || c.topics.some(t => t.includes(q)));
       if (level) mock = mock.filter(c => c.level === level);

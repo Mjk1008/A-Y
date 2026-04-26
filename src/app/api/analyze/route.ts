@@ -23,6 +23,7 @@ export async function POST() {
     const profile = profileRes.rows[0];
 
     // ── Quota check ────────────────────────────────────────────────────
+    // 2048 and memory game rewards each add +1 to the weekly analysis limit
     const planDef = PLANS.find((p) => p.id === session.plan) ?? PLANS[0];
     const weeklyLimit = planDef.limits.analysesPerWeek;
 
@@ -31,18 +32,29 @@ export async function POST() {
       weekStart.setDate(weekStart.getDate() - weekStart.getDay());
       weekStart.setHours(0, 0, 0, 0);
 
-      const usageRes = await pool.query(
-        `SELECT COUNT(*) FROM usage_logs
-         WHERE user_id=$1 AND type='analysis' AND created_at >= $2`,
-        [session.id, weekStart]
-      );
-      const used = parseInt(usageRes.rows[0].count, 10);
+      const [usageRes, gameBonusRes] = await Promise.all([
+        pool.query(
+          `SELECT COUNT(*) FROM usage_logs
+           WHERE user_id=$1 AND type='analysis' AND created_at >= $2`,
+          [session.id, weekStart]
+        ),
+        pool.query(
+          `SELECT COUNT(*) FROM usage_logs
+           WHERE user_id=$1 AND type='game_reward'
+             AND metadata->>'game' IN ('2048', 'memory')
+             AND created_at >= $2`,
+          [session.id, weekStart]
+        ).catch(() => ({ rows: [{ count: "0" }] })),
+      ]);
+      const used            = parseInt(usageRes.rows[0].count, 10);
+      const gameBonus       = parseInt(gameBonusRes.rows[0].count ?? "0");
+      const effectiveLimit  = weeklyLimit + gameBonus;
 
-      if (used >= weeklyLimit) {
+      if (used >= effectiveLimit) {
         return NextResponse.json({
           error: "quota_exceeded",
           used,
-          limit: weeklyLimit,
+          limit: effectiveLimit,
           upgrade_url: "/billing/checkout",
         }, { status: 429 });
       }

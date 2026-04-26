@@ -305,12 +305,11 @@ export async function scrapeAllJobs(query = "هوش مصنوعی"): Promise<JobL
     if (r.status === "fulfilled") all.push(...r.value);
   }
 
-  /* Filter last 48 hours */
-  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+  /* If scrapers returned results, prefer recent ones; otherwise return all */
+  if (all.length === 0) return [];
+  const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000); // 72h window
   const recent = all.filter((j) => j.posted_at >= cutoff);
-
-  /* If very few (scrapers might not parse dates well), return all */
-  return dedup(recent.length >= 5 ? recent : all).slice(0, 100);
+  return dedup(recent.length >= 3 ? recent : all).slice(0, 100);
 }
 
 /* ── helpers ─────────────────────────────────────────────────────── */

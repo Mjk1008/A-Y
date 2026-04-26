@@ -143,18 +143,30 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Daily chat limit for free users (5 messages/day) ─────────
+    // Snake game reward: each win today adds +1 to the effective limit
     const FREE_DAILY_CHAT_LIMIT = 5;
     if (session.plan === "free") {
       const today = new Date(); today.setHours(0, 0, 0, 0);
-      const usageRes = await pool.query(
-        `SELECT COUNT(*) FROM usage_logs
-         WHERE user_id=$1 AND type='chat_message' AND created_at >= $2`,
-        [session.id, today.toISOString()]
-      );
-      const usedToday = parseInt(usageRes.rows[0].count ?? "0");
-      if (usedToday >= FREE_DAILY_CHAT_LIMIT) {
+      const [usageRes, snakeBonusRes] = await Promise.all([
+        pool.query(
+          `SELECT COUNT(*) FROM usage_logs
+           WHERE user_id=$1 AND type='chat_message' AND created_at >= $2`,
+          [session.id, today.toISOString()]
+        ),
+        pool.query(
+          `SELECT COUNT(*) FROM usage_logs
+           WHERE user_id=$1 AND type='game_reward'
+             AND metadata->>'game' = 'snake'
+             AND created_at >= $2`,
+          [session.id, today.toISOString()]
+        ).catch(() => ({ rows: [{ count: "0" }] })),
+      ]);
+      const usedToday    = parseInt(usageRes.rows[0].count ?? "0");
+      const snakeBonus   = parseInt(snakeBonusRes.rows[0].count ?? "0");
+      const effectiveLimit = FREE_DAILY_CHAT_LIMIT + snakeBonus;
+      if (usedToday >= effectiveLimit) {
         return NextResponse.json(
-          { error: "daily_limit", used: usedToday, limit: FREE_DAILY_CHAT_LIMIT, remaining: 0 },
+          { error: "daily_limit", used: usedToday, limit: effectiveLimit, remaining: 0 },
           { status: 429 }
         );
       }

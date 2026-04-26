@@ -72,14 +72,31 @@ export async function GET(req: NextRequest) {
       posted_at TIMESTAMPTZ, is_remote BOOLEAN, crawled_at TIMESTAMPTZ DEFAULT NOW()
     )`);
 
+    // Check total count (no date filter) for seed decision
+    const totalAllTime = parseInt(
+      (await pool.query("SELECT COUNT(*) FROM crawled_jobs")).rows[0].count
+    );
+
+    if (totalAllTime === 0) {
+      // Seed curated jobs into DB so they're persistent and real
+      for (const j of MOCK_JOBS) {
+        await pool.query(
+          `INSERT INTO crawled_jobs (source, title, company, location, skills, description, url, posted_at, is_remote, crawled_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, NOW())
+           ON CONFLICT (url) DO UPDATE SET crawled_at=NOW()`,
+          [j.source, j.title, j.company, j.location, j.skills, "", j.url + "?seed=" + j.id, j.posted_at, j.is_remote]
+        ).catch(() => {});
+      }
+    }
+
     const countResult = await pool.query(
       `SELECT COUNT(*) FROM crawled_jobs ${where}`,
       values
     );
     const total = parseInt(countResult.rows[0].count);
 
-    if (total === 0) {
-      // Crawler not connected yet — return mock data with filtering applied
+    if (total === 0 && totalAllTime === 0) {
+      // DB seed failed entirely, return in-memory fallback
       let mock = MOCK_JOBS;
       if (q) mock = mock.filter(j => j.title.includes(q) || j.company.includes(q) || j.skills.some(s => s.includes(q)));
       if (remote) mock = mock.filter(j => j.is_remote);
