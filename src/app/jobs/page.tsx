@@ -1,13 +1,21 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import pool from "@/lib/db";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BottomNav } from "@/app/components/BottomNav";
 import MatchedJobs from "@/app/components/MatchedJobs";
+import { JobsMascotBanner } from "@/app/components/JobsMascotBanner";
 
 export default async function JobsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const profileRes = await pool.query(
+    "SELECT skills FROM profiles WHERE user_id=$1",
+    [session.id]
+  );
+  const userSkills: string[] = profileRes.rows[0]?.skills ?? [];
 
   return (
     <div className="min-h-[100dvh] pb-28" style={{ background: "#020306", color: "#e8efea" }}>
@@ -36,7 +44,8 @@ export default async function JobsPage() {
         </div>
       </header>
 
-      <MatchedJobs limit={20} />
+      <JobsMascotBanner matchCount={34} />
+      <MatchedJobs limit={20} userSkills={userSkills} />
     </div>
   );
 }

@@ -19,8 +19,9 @@
  *  - SuccessScreen        → analysis complete transition
  */
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { usePathname } from "next/navigation";
+import { MascotArt } from "@/app/components/PixelMascot";
 
 // ── Color tokens ─────────────────────────────────────────────────────────
 const C = {
@@ -307,15 +308,15 @@ export function OfflineDetector() {
           fontFamily: "Vazirmatn, sans-serif",
         }}
       >
-        {/* Sleeping mascot mini */}
+        {/* Mascot mini */}
         <div style={{
           width: 36, height: 36, borderRadius: 10,
           background: "rgba(248,113,113,0.12)",
           border: "1px solid rgba(248,113,113,0.25)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 18, flexShrink: 0,
+          flexShrink: 0, overflow: "hidden",
         }}>
-          😴
+          <MascotArt state="idle" frame={0} blink={false} scale={1.5} accent="#f87171" />
         </div>
 
         <div style={{ flex: 1 }}>
@@ -428,13 +429,14 @@ export function PulseDot({ color = C.em300, size = 8 }: { color?: string; size?:
 const ANALYSIS_LINES = [
   "دارم شغلت رو می‌خونم…",
   "مهارت‌هات رو دسته‌بندی می‌کنم…",
-  "با ۲.۳ میلیون داده مقایسه می‌کنم…",
-  "ریسک AI رو حساب می‌کنم…",
-  "مسیر رشد پیشنهادی می‌سازم…",
+  "ابزارهای AI مناسب شغلت رو پیدا می‌کنم…",
+  "ریسک جایگزینی رو ارزیابی می‌کنم…",
+  "مسیر رشد شخصی‌سازی‌شده می‌سازم…",
 ];
 
 export function AnalysisLoading({ step = 0 }: { step?: number }) {
   const [lineIdx, setLineIdx] = useState(step < ANALYSIS_LINES.length ? step : 0);
+  const [mascotFrame, setMascotFrame] = useState(0);
   const stars = useMemo(() =>
     Array.from({ length: 50 }, (_, i) => ({
       x: ((i * 137 + 23) % 100),
@@ -447,6 +449,11 @@ export function AnalysisLoading({ step = 0 }: { step?: number }) {
 
   useEffect(() => {
     const t = setInterval(() => setLineIdx((v) => (v + 1) % ANALYSIS_LINES.length), 1800);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setMascotFrame((f) => (f + 1) % 60), 100);
     return () => clearInterval(t);
   }, []);
 
@@ -503,13 +510,13 @@ export function AnalysisLoading({ step = 0 }: { step?: number }) {
             </div>
           ))}
 
-          {/* Center robot emoji */}
+          {/* Center mascot */}
           <div style={{
             position: "absolute", inset: 0,
             display: "flex", alignItems: "center", justifyContent: "center",
             animation: "ay-breathe 2.4s ease-in-out infinite",
           }}>
-            <div style={{ fontSize: 52, lineHeight: 1 }}>🤖</div>
+            <MascotArt state="idle" frame={mascotFrame} blink={false} scale={3} accent={C.em300} />
           </div>
         </div>
 

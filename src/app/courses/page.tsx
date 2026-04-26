@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BottomNav } from "@/app/components/BottomNav";
 import Courses from "@/app/components/Courses";
+import { CoursesMascotBanner } from "@/app/components/CoursesMascotBanner";
 
 export default async function CoursesPage() {
   const session = await getSession();
@@ -38,6 +39,7 @@ export default async function CoursesPage() {
         </div>
       </header>
 
+      <CoursesMascotBanner />
       <Courses limit={20} />
     </div>
   );

@@ -4,6 +4,7 @@ import "@fontsource-variable/vazirmatn";
 import LenisProvider from "./components/LenisProvider";
 import { ThemeProvider } from "@/app/components/ThemeProvider";
 import { PageProgressBar, OfflineDetector } from "@/app/components/LoadingStates";
+import { FloatingMascot } from "@/app/components/PixelMascot";
 
 export const metadata: Metadata = {
   title: "A-Y | ای‌وای — استاد AI شو، نه قربانی",
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LenisProvider />
         <ThemeProvider>
           {children}
+          <FloatingMascot />
         </ThemeProvider>
       </body>
     </html>

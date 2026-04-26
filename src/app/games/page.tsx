@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Trophy, RotateCcw } from "lucide-react";
 import { SnakeGame } from "./Snake";
@@ -8,6 +8,7 @@ import { TwentyFortyEightGame } from "./TwentyFortyEight";
 import { FlappyGame } from "./Flappy";
 import { MemoryGame } from "./Memory";
 import { BottomNav } from "@/app/components/BottomNav";
+import { MascotArt } from "@/app/components/PixelMascot";
 
 type GameId = "snake" | "2048" | "flappy" | "memory";
 type View = "hub" | "intro" | "playing" | "result" | "leaderboard";
@@ -558,6 +559,43 @@ function GameLeaderboard({
   );
 }
 
+// ─────────────────────────── Pixel sparkle backdrop ───────────────────────────
+const SPARKLE_POSITIONS = [[10, 18], [88, 12], [18, 78], [82, 72], [50, 8], [92, 40], [6, 44], [60, 86]];
+
+function PixelBackdrop({ accent }: { accent: string }) {
+  return (
+    <>
+      {SPARKLE_POSITIONS.map(([x, y], i) => (
+        <div key={i} style={{
+          position: "absolute", left: `${x}%`, top: `${y}%`,
+          width: 2, height: 2, background: accent, boxShadow: `0 0 6px ${accent}`,
+          opacity: 0.55, pointerEvents: "none",
+          animation: `ay-twinkle ${2 + (i * 0.3) % 2}s ease-in-out ${(i * 0.2) % 1.5}s infinite`,
+        }} />
+      ))}
+      <style>{`@keyframes ay-twinkle{0%,100%{opacity:.2}50%{opacity:1}}`}</style>
+    </>
+  );
+}
+
+// ─────────────────────────── Animated mascot wrapper ───────────────────────────
+function HubMascot() {
+  const [frame, setFrame] = useState(0);
+  const [blink, setBlink] = useState(false);
+  useEffect(() => {
+    const id = setInterval(() => setFrame((f) => (f + 1) % 60), 100);
+    return () => clearInterval(id);
+  }, []);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setBlink(true);
+      setTimeout(() => setBlink(false), 140);
+    }, 3500);
+    return () => clearInterval(id);
+  }, []);
+  return <MascotArt state="idle" frame={frame} blink={blink} scale={3} accent="#34d399" />;
+}
+
 // ─────────────────────────── Main Page ───────────────────────────
 export default function GamesPage() {
   const [view, setView] = useState<View>("hub");
@@ -590,7 +628,8 @@ export default function GamesPage() {
   // ── Hub ──
   if (view === "hub") {
     return (
-      <div dir="rtl" style={{ minHeight: "100svh", background: "#020306", color: "#e8efea", paddingBottom: 96, fontFamily: "'Vazirmatn', sans-serif" }}>
+      <div dir="rtl" style={{ minHeight: "100svh", background: "#020306", color: "#e8efea", paddingBottom: 96, fontFamily: "'Vazirmatn', sans-serif", position: "relative", overflow: "hidden" }}>
+        <PixelBackdrop accent="#34d399" />
         <header style={{ position: "sticky", top: 0, zIndex: 30, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "rgba(2,3,6,0.88)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>
             <ArrowRight size={16} />
@@ -603,9 +642,17 @@ export default function GamesPage() {
           <div style={{ width: 80 }} />
         </header>
 
-        <div style={{ padding: "24px 16px 0" }}>
-          <h1 style={{ fontWeight: 900, fontSize: 26, margin: 0, lineHeight: 1.3, color: "#e8efea" }}>ذهنت رو استراحت بده.</h1>
-          <p style={{ fontSize: 12, opacity: 0.55, margin: "6px 0 20px", lineHeight: 1.6 }}>چهار بازی کوتاه و خوش‌مزه برای خستگی‌های کوچیک.</p>
+        <div style={{ padding: "24px 16px 0", position: "relative", zIndex: 5 }}>
+          {/* Mascot + headline row */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 12, marginBottom: 16 }}>
+            <div style={{ flexShrink: 0 }}>
+              <HubMascot />
+            </div>
+            <div>
+              <h1 style={{ fontWeight: 900, fontSize: 24, margin: 0, lineHeight: 1.2, color: "#e8efea" }}>ذهنت رو استراحت بده.</h1>
+              <p style={{ fontSize: 12, opacity: 0.55, margin: "5px 0 0", lineHeight: 1.6 }}>چهار بازی کوتاه برای خستگی‌های کوچیک.</p>
+            </div>
+          </div>
           <StatsStrip stats={[{ label: "کل بازی‌ها", value: "۴۳۵" }, { label: "بهترین سری", value: "۷" }, { label: "این هفته", value: "۱۸" }]} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 20 }}>
             {GAMES.map((game) => (

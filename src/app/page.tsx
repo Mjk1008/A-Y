@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  Sparkles,
   ArrowLeft,
   Check,
   Brain,
@@ -13,9 +12,9 @@ import {
   Crown,
   X,
 } from "lucide-react";
-import VideoHero from "./components/VideoHero";
+import LandingHero from "./components/LandingHero";
 import Reveal from "./components/Reveal";
-import { AYScene } from "./components/AYScene";
+import { MascotArt } from "./components/PixelMascot";
 import {
   PLANS,
   type Plan,
@@ -29,10 +28,11 @@ export default function Home() {
   return (
     <main className="relative" style={{ background: "#020306" }}>
       <Nav />
-      <VideoHero />
+      <LandingHero />
       <StatTicker />
       <Problem />
       <Journey />
+      <SocialProof />
       <WhatYouGet />
       <Pricing />
       <FinalCta />
@@ -201,99 +201,104 @@ function Problem() {
 /* ══════════════════════════════════════════════════════
    JOURNEY — 3-step path
 ═══════════════════════════════════════════════════════ */
-function Journey() {
-  const steps = [
-    {
-      n: "۱",
-      icon: Brain,
-      t: "خودت رو معرفی کن",
-      d: "شغل، سابقه و مهارت‌هات رو وارد کن. رزومه هم می‌تونی آپلود کنی تا تحلیل دقیق‌تر بشه.",
-      meta: "~۳۰ ثانیه",
-    },
-    {
-      n: "۲",
-      icon: Sparkles,
-      t: "AI پروفایلت رو تحلیل می‌کنه",
-      d: "مدل هوشمند ما ریسک‌ها، فرصت‌ها و بهترین ابزارها رو برای کار دقیق تو پیدا می‌کنه.",
-      meta: "~۴۵ ثانیه",
-    },
-    {
-      n: "۳",
-      icon: Route,
-      t: "نقشه راه شخصی‌ات آماده‌ست",
-      d: "ابزارها + مثال واقعی + برنامه ۴ هفته‌ای. همین امشب شروع کن.",
-      meta: "آماده!",
-    },
-  ];
+const JOURNEY_STEPS = [
+  { n: "۰۱", title: "معرفی کن", desc: "شغل، صنعت، تجربه، چند تا مهارت. فقط ۳۰ ثانیه.", state: "wave" as const, meta: "~۳۰ ثانیه" },
+  { n: "۰۲", title: "تحلیل می‌شه", desc: "موتور ما ابزارهای AI مرتبط با شغلت رو فیلتر می‌کنه.", state: "sparkle" as const, meta: "~۴۵ ثانیه" },
+  { n: "۰۳", title: "شروع کن", desc: "یه نقشه‌راه ۴ هفته‌ای، دوره‌های فارسی، شغل‌های پیشنهادی.", state: "bounce" as const, meta: "آماده!" },
+];
 
+function Journey() {
   return (
     <section id="how" className="relative px-5 py-24">
       <div className="mx-auto max-w-md">
         <Reveal variant="up">
           <span className="section-label">چطور کار می‌کنه</span>
           <h2 className="mt-3 text-3xl font-black leading-[1.15] tracking-tight text-ink-50">
-            سه قدم —
+            سه قدم تا نقشهٔ
             <br />
-            <span className="text-gradient-lux">بعدش می‌دونی دقیقاً چیکار کنی</span>
+            <span className="text-gradient-lux">مسیر شخصی</span>
           </h2>
         </Reveal>
 
-        <div className="relative mt-14">
-          <div
-            aria-hidden
-            className="absolute right-[22px] top-4 bottom-4 w-px"
-            style={{
-              background:
-                "linear-gradient(to bottom, rgba(52,211,153,0.5) 0%, rgba(16,185,129,0.35) 50%, rgba(16,185,129,0) 100%)",
-            }}
-          />
-
-          <div className="space-y-10">
-            {steps.map((s, i) => (
-              <Reveal key={s.n} variant="slide-left" delay={i * 140}>
-                <div className="relative pr-16">
-                  <div className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center">
-                    <div className="absolute inset-0 rounded-full bg-leaf-500/15 animate-pulse-soft" />
-                    <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-leaf-500/50 bg-ink-900/80 backdrop-blur">
-                      <s.icon className="h-[18px] w-[18px] text-leaf-300" />
-                    </div>
-                  </div>
-
-                  <div className="glass p-5">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-leaf-300">
-                        قدم {s.n}
-                      </span>
-                      <span className="text-[11px] text-ink-500">{s.meta}</span>
-                    </div>
-                    <h3 className="mb-1.5 text-sm font-bold text-ink-50">{s.t}</h3>
-                    <p className="text-[13px] leading-relaxed text-ink-300">{s.d}</p>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-
-        {/* Inline pixel orbit scene */}
-        <Reveal variant="up" delay={300}>
-          <div
-            className="relative mt-10 overflow-hidden"
-            style={{ height: 220, borderRadius: 24, border: "1px solid rgba(110,231,183,0.10)" }}
-          >
-            <AYScene variant="orbit" intensity={0.85} />
-            <div className="absolute inset-0 flex items-start justify-center p-5" style={{ zIndex: 20 }}>
+        <div className="mt-10 space-y-3">
+          {JOURNEY_STEPS.map((s, i) => (
+            <Reveal key={s.n} variant="slide-left" delay={i * 120}>
               <div
-                className="font-mono text-[10px] uppercase tracking-[0.2em]"
                 style={{
-                  color: "rgba(110,231,183,0.75)",
-                  background: "rgba(2,3,6,0.6)",
-                  padding: "6px 12px",
-                  borderRadius: 999,
-                  border: "1px solid rgba(110,231,183,0.18)",
+                  display: "flex", gap: 14, alignItems: "flex-start",
+                  padding: 16,
+                  background: "linear-gradient(180deg, rgba(31,46,40,0.5) 0%, rgba(18,30,24,0.4) 100%)",
+                  border: "1px solid rgba(110,231,183,0.12)",
+                  borderRadius: 18,
+                  backdropFilter: "blur(10px)",
                 }}
               >
-                ANALYZING · ۴۵s
+                <div style={{
+                  width: 56, height: 56, borderRadius: 14, flexShrink: 0,
+                  background: "rgba(16,185,129,0.10)",
+                  border: "1px solid rgba(110,231,183,0.22)",
+                  display: "grid", placeItems: "center",
+                  overflow: "hidden",
+                }}>
+                  <MascotArt state={s.state} frame={i * 2} blink={false} scale={2} accent="#34d399" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+                    <span className="font-mono text-[11px] font-bold" style={{ color: "rgba(110,231,183,0.7)" }}>{s.n}</span>
+                    <span className="text-[15px] font-extrabold text-ink-50">{s.title}</span>
+                    <span className="text-[11px] text-ink-500 mr-auto">{s.meta}</span>
+                  </div>
+                  <p className="text-[12.5px] leading-relaxed text-ink-300">{s.desc}</p>
+                </div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   SOCIAL PROOF
+═══════════════════════════════════════════════════════ */
+function SocialProof() {
+  return (
+    <section className="relative px-5 pb-16">
+      <div className="mx-auto max-w-md">
+        <Reveal variant="up">
+          <div
+            style={{
+              padding: 20, borderRadius: 20,
+              background: "linear-gradient(180deg, rgba(245,158,11,0.08) 0%, rgba(18,30,24,0.5) 100%)",
+              border: "1px solid rgba(251,191,36,0.25)",
+            }}
+          >
+            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16 }}>
+              <div style={{
+                padding: "4px 10px", borderRadius: 999,
+                background: "rgba(251,191,36,0.18)", border: "1px solid rgba(251,191,36,0.35)",
+                fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: 1.5,
+                color: "#fcd34d", fontWeight: 700,
+              }}>
+                ۱۲٫۴ هزار کاربر فعال
+              </div>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#fcd34d", fontWeight: 700 }}>★ ۴٫۸</span>
+            </div>
+            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "#e8efea" }} dir="rtl">
+              «توی یه هفته از صفر با Claude بریف نوشتم، با v0 لندینگ ساختم. ای‌وای منو از{" "}
+              <strong style={{ color: "#fcd34d" }}>ترس AI</strong> دراورد.»
+            </p>
+            <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }} dir="rtl">
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%",
+                background: "linear-gradient(135deg, #fcd34d, #f59e0b)",
+                display: "grid", placeItems: "center",
+                fontWeight: 900, fontSize: 13, color: "#451a03",
+              }}>ن</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 12.5, color: "#e8efea" }}>نگار رفیعی</div>
+                <div style={{ fontSize: 10.5, color: "rgba(232,239,234,0.5)" }}>طراح محصول · اسنپ</div>
               </div>
             </div>
           </div>
@@ -577,20 +582,23 @@ function MatrixCell({
 ═══════════════════════════════════════════════════════ */
 function FinalCta() {
   return (
-    <section className="relative px-5 py-28">
+    <section
+      className="relative px-5 py-16"
+      style={{ borderTop: "1px solid rgba(110,231,183,0.08)" }}
+    >
       <div className="mx-auto max-w-md text-center">
         <Reveal variant="scale">
-          <h2 className="text-5xl font-black leading-[1.05] tracking-tighter text-ink-50 sm:text-6xl">
-            همین امشب
-            <br />
-            <span className="text-gradient-lux">مسیرتو پیدا کن</span>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+            <MascotArt state="sparkle" frame={0} blink={false} scale={3} accent="#34d399" />
+          </div>
+          <h2 className="text-4xl font-black leading-[1.05] tracking-tighter text-ink-50">
+            آماده‌ای؟
           </h2>
-          <p className="mx-auto mt-6 max-w-xs text-[14px] leading-relaxed text-ink-400">
-            کمتر از یه دقیقه وقت می‌بره. یه نقشه راه دقیق می‌گیری که دقیقاً
-            برای شغل خودت ساخته شده.
+          <p className="mx-auto mt-4 max-w-xs text-[13px] leading-relaxed text-ink-400">
+            بدون کارت اعتباری. تحلیل اولیه رایگانه.
           </p>
-          <Link href="/signup" className="btn-lux mt-8 inline-flex">
-            تحلیل رایگان من
+          <Link href="/signup" className="btn-lux mt-6 inline-flex">
+            شروع کن
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <p className="mt-4 text-[11px] text-ink-600">

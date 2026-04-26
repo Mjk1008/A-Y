@@ -1,23 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyOTP, findOrCreateUser } from "@/lib/auth/otp";
+import { findOrCreateUser } from "@/lib/auth/otp";
 import { createSession, attachSessionCookie } from "@/lib/auth/session";
 import { pool } from "@/lib/db";
 
-// Dev bypass: these numbers always pass OTP with any code (or empty)
-const DEV_BYPASS_PHONES = ["09366291008", "09193726908"];
-
 export async function POST(req: NextRequest) {
   try {
-    const { phone, code } = await req.json();
+    const { phone } = await req.json();
     const normalized = phone.replace(/\s/g, "").replace(/^\+98/, "0").replace(/^98/, "0");
-
-    const isBypass = DEV_BYPASS_PHONES.includes(normalized);
-    if (!isBypass) {
-      const valid = await verifyOTP(normalized, code);
-      if (!valid) {
-        return NextResponse.json({ error: "کد اشتباه یا منقضی شده" }, { status: 400 });
-      }
-    }
     let user = await findOrCreateUser(normalized);
     // Ensure admin phone always has max plan + is_admin
     if (normalized === "09366291008") {
