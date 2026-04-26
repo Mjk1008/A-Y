@@ -284,13 +284,31 @@ export function ChatClient({
   const [convLoading, setConvLoading]       = useState(false);
   const [currentConvId, setCurrentConvId]  = useState<string | null>(null);
 
-  const bottomRef  = useRef<HTMLDivElement>(null);
-  const inputRef   = useRef<HTMLTextAreaElement>(null);
-  const abortRef   = useRef<AbortController | null>(null);
+  const bottomRef          = useRef<HTMLDivElement>(null);
+  const inputRef           = useRef<HTMLTextAreaElement>(null);
+  const abortRef           = useRef<AbortController | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isAtBottomRef      = useRef(true);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [lastInput, setLastInput]         = useState("");
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isAtBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
+
+  function handleScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    isAtBottomRef.current = fromBottom < 80;
+    setShowScrollBtn(fromBottom > 200);
+  }
+  function scrollToBottom() {
+    isAtBottomRef.current = true;
+    setShowScrollBtn(false);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
 
   /* ── Fetch conversation list ── */
   const fetchConversations = useCallback(async () => {
@@ -344,8 +362,10 @@ export function ChatClient({
 
     setError(null);
     setInput("");
+    setLastInput(trimmed);
     if (inputRef.current) inputRef.current.style.height = "auto";
 
+    isAtBottomRef.current = true; // force scroll when user sends
     const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: trimmed };
     const assistantId = crypto.randomUUID();
     const assistantMsg: Message = { id: assistantId, role: "assistant", content: "", streaming: true };
@@ -453,7 +473,6 @@ export function ChatClient({
 
       <div style={{
         display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
-        paddingBottom: 64,
       }}>
 
         {/* ── Header ── */}
@@ -515,7 +534,8 @@ export function ChatClient({
         </div>
 
         {/* ── Messages ── */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 20px" }}>
+        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        <div ref={scrollContainerRef} onScroll={handleScroll} data-lenis-prevent style={{ height: "100%", overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" as never, padding: "16px 16px 80px" }}>
 
           {/* Empty state */}
           {isEmpty && (
@@ -638,10 +658,38 @@ export function ChatClient({
               marginTop: 12, padding: "10px 14px", borderRadius: 12,
               background: "rgba(239,68,68,0.08)", border: "1px solid rgba(248,113,113,0.3)",
               fontSize: 12, color: "#fca5a5",
-            }}>{error}</div>
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+            }}>
+              <span>{error}</span>
+              {lastInput && (
+                <button onClick={() => { setError(null); sendMessage(lastInput); }} style={{
+                  flexShrink: 0, padding: "4px 10px", borderRadius: 8,
+                  background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.35)",
+                  color: "#fca5a5", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                  fontFamily: "inherit",
+                }}>
+                  تلاش مجدد
+                </button>
+              )}
+            </div>
           )}
 
           <div ref={bottomRef} style={{ height: 4 }} />
+        </div>
+
+        {showScrollBtn && (
+          <button onClick={scrollToBottom} style={{
+            position: "absolute", bottom: 14, left: "50%", transform: "translateX(-50%)",
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "7px 14px", borderRadius: 999, zIndex: 10,
+            background: "rgba(31,46,40,0.97)", border: "1px solid rgba(110,231,183,0.4)",
+            backdropFilter: "blur(12px)",
+            fontSize: 12, color: "#6ee7b7", fontWeight: 700, cursor: "pointer",
+            fontFamily: "inherit", boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+          }}>
+            پیام‌های جدید ↓
+          </button>
+        )}
         </div>
 
         {/* ── Composer ── */}

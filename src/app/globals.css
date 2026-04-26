@@ -346,3 +346,43 @@ body::after {
   opacity: 0.02;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
+
+/* ─── Theme system — CSS !important overrides inline styles ────────
+   ThemeProvider sets data-theme on <html>. These rules use !important
+   so they beat inline style="{{ background: "#020306" }}" on page divs. */
+
+html[data-theme="cream"] body,
+html[data-theme="cream"] .min-h-screen,
+html[data-theme="cream"] .min-h-\[100dvh\],
+html[data-theme="cream"] .min-h-\[100svh\],
+html[data-theme="cream"] .h-\[100dvh\] {
+  background: #f5efe3 !important;
+  color: #14271f !important;
+}
+
+html[data-theme="sky"] body,
+html[data-theme="sky"] .min-h-screen,
+html[data-theme="sky"] .min-h-\[100dvh\],
+html[data-theme="sky"] .min-h-\[100svh\],
+html[data-theme="sky"] .h-\[100dvh\] {
+  background: #e6f0f0 !important;
+  color: #0c2a33 !important;
+}
+
+/* Sticky headers in light themes */
+html[data-theme="cream"] header,
+html[data-theme="cream"] nav { background: rgba(245,239,227,0.9) !important; }
+html[data-theme="sky"] header,
+html[data-theme="sky"] nav { background: rgba(230,240,240,0.9) !important; }
+
+/* ─── Global scroll — prevent rubber-band on inner scroll areas ──── */
+[data-lenis-prevent] {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─── Chat / scrollable sections touch scroll ───────────────────── */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}

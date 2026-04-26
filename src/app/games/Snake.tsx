@@ -211,6 +211,16 @@ export function SnakeGame({ onGameOver }: { onGameOver?: (score: number) => void
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [draw]);
 
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = canvasWrapperRef.current;
+    if (!el) return;
+    const prevent = (e: TouchEvent) => e.preventDefault();
+    el.addEventListener("touchmove", prevent, { passive: false });
+    return () => el.removeEventListener("touchmove", prevent);
+  }, []);
+
   const onTouchStart = (e: React.TouchEvent) => {
     touchRef.current.x = e.touches[0].clientX;
     touchRef.current.y = e.touches[0].clientY;
@@ -224,7 +234,7 @@ export function SnakeGame({ onGameOver }: { onGameOver?: (score: number) => void
   };
 
   const DPad = () => (
-    <div style={{ display: "grid", gridTemplateColumns: "48px 48px 48px", gridTemplateRows: "48px 48px 48px", gap: 4, userSelect: "none" }}>
+    <div dir="ltr" style={{ display: "grid", gridTemplateColumns: "48px 48px 48px", gridTemplateRows: "48px 48px 48px", gap: 4, userSelect: "none" }}>
       {/* UP */}
       <div />
       <DPadBtn onPress={() => setDir("UP")} label="↑" />
@@ -260,7 +270,8 @@ export function SnakeGame({ onGameOver }: { onGameOver?: (score: number) => void
 
       {/* Canvas */}
       <div
-        style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(52,211,153,0.18)", boxShadow: "0 0 24px rgba(52,211,153,0.08)" }}
+        ref={canvasWrapperRef}
+        style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(52,211,153,0.18)", boxShadow: "0 0 24px rgba(52,211,153,0.08)", touchAction: "none" }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
