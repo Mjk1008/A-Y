@@ -1,11 +1,22 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { query } from "@/lib/db";
 import { PLANS } from "@/app/config/plans";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Quick daily chat count (used by chat composer)
+  const type = req.nextUrl.searchParams.get("type");
+  if (type === "chat_today") {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const res = await query(
+      `SELECT COUNT(*) FROM usage_logs WHERE user_id=$1 AND type='chat_message' AND created_at >= $2`,
+      [session.id, today.toISOString()]
+    );
+    return NextResponse.json({ chat_today: parseInt(res.rows[0].count, 10) });
+  }
 
   const plan = PLANS.find((p) => p.id === session.plan) || PLANS[0];
 

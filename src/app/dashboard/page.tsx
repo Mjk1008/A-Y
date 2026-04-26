@@ -20,11 +20,13 @@ import {
   Zap,
   Gamepad2,
   Shield,
+  Flame,
 } from "lucide-react";
 import { DashboardClient } from "./DashboardClient";
 import { BottomNav } from "@/app/components/BottomNav";
 import { LogoStatic } from "@/app/components/Logo";
 import { PLANS } from "@/app/config/plans";
+import { getStreak } from "@/lib/streak";
 
 const ADMIN_PHONE = "09366291008";
 
@@ -55,7 +57,7 @@ export default async function DashboardPage() {
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   weekStart.setHours(0, 0, 0, 0);
 
-  const [latestRes, analysesUsedRes, jobCountRes, courseCountRes, subRes, progressRes] =
+  const [latestRes, analysesUsedRes, jobCountRes, courseCountRes, subRes, progressRes, streakData] =
     await Promise.all([
       pool.query(
         "SELECT id, result_json, created_at FROM analyses WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1",
@@ -90,6 +92,7 @@ export default async function DashboardPage() {
           [session.id]
         )
         .catch(() => ({ rows: [{ done: "0", total: "0" }] })),
+      getStreak(session.id).catch(() => ({ currentStreak: 0, bestStreak: 0, lastActivityDate: null, totalDaysActive: 0 })),
     ]);
 
   const latest = latestRes.rows[0] ?? null;
@@ -154,6 +157,29 @@ export default async function DashboardPage() {
               : "مسیر حرفه‌ای هوشمند تو"}
           </p>
         </div>
+
+        {/* ── Streak Card ── */}
+        {streakData.currentStreak > 0 && (
+          <div className="mb-5 flex items-center gap-3 rounded-2xl border border-orange-500/25 bg-gradient-to-r from-orange-500/[0.10] to-amber-500/[0.06] px-4 py-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-2xl">
+              🔥
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[17px] font-black text-orange-300">
+                  {streakData.currentStreak.toLocaleString("fa-IR")} روز
+                </span>
+                <span className="text-[11px] text-orange-400/70 font-medium">streak</span>
+              </div>
+              <p className="mt-0.5 text-[11px] text-orange-400/60 leading-snug">
+                {streakData.bestStreak > streakData.currentStreak
+                  ? `رکورد بهترین: ${streakData.bestStreak.toLocaleString("fa-IR")} روز`
+                  : "رکورد شخصی — همینجوری ادامه بده!"}
+              </p>
+            </div>
+            <Flame className="h-5 w-5 text-orange-400 shrink-0" />
+          </div>
+        )}
 
         {/* ── Expiry warning ── */}
         {isNearExpiry && daysLeft !== null && (
@@ -236,16 +262,16 @@ export default async function DashboardPage() {
           />
 
           <FeatureCard
-            href={isPro ? "/chat" : "/billing/checkout"}
+            href="/chat"
             title="مسیریاب AI"
-            desc={isPro ? "بپرس، جواب شخصی بگیر" : "نیاز به پلن پرو"}
+            desc={isPro ? "بپرس، جواب شخصی بگیر" : "۵ پیام در روز رایگان"}
             iconBg="bg-violet-500/20"
             icon={<MessageCircle className="h-5 w-5 text-violet-400" />}
             gradientFrom="from-violet-500/20"
             borderColor="border-violet-500/20"
-            cta={isPro ? "گفتگو" : "ارتقا"}
-            badge={!isPro ? "PRO" : undefined}
-            active={isPro}
+            cta="گفتگو"
+            badge={!isPro ? "رایگان" : undefined}
+            active={true}
           />
 
           <FeatureCard

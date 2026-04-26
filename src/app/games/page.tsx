@@ -281,9 +281,10 @@ function GameIntro({ game, onStart, onBack }: { game: GameConfig; onStart: () =>
 
 // ─────────────────────────── GameResult ───────────────────────────
 function GameResult({
-  game, score, isNewRecord, onPlayAgain, onLeaderboard, onHub,
+  game, score, isNewRecord, rewardData, onPlayAgain, onLeaderboard, onHub,
 }: {
   game: GameConfig; score: number; isNewRecord: boolean;
+  rewardData: RewardData | null;
   onPlayAgain: () => void; onLeaderboard: () => void; onHub: () => void;
 }) {
   const { accent, emoji, label } = game;
@@ -352,6 +353,33 @@ function GameResult({
             بهترین: {getBest(game.storageKey).toLocaleString()}
           </div>
         </div>
+
+        {/* Reward banner */}
+        {rewardData?.earned && (
+          <div style={{
+            width: "100%", maxWidth: 300,
+            padding: "14px 16px", borderRadius: 16,
+            background: "linear-gradient(135deg, rgba(250,204,21,0.12), rgba(234,179,8,0.08))",
+            border: "1px solid rgba(250,204,21,0.3)",
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 24, marginBottom: 6 }}>🎁</div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#fde68a" }}>جایزه گرفتی!</div>
+            <div style={{ fontSize: 12, color: "rgba(253,230,138,0.7)", marginTop: 4 }}>
+              {rewardData.reward}
+            </div>
+          </div>
+        )}
+        {rewardData?.alreadyClaimed && (
+          <div style={{
+            width: "100%", maxWidth: 300,
+            padding: "10px 14px", borderRadius: 14,
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+            textAlign: "center", fontSize: 11.5, color: "rgba(232,239,234,0.4)",
+          }}>
+            {rewardData.message}
+          </div>
+        )}
 
         {/* Action buttons */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 300 }}>
@@ -597,33 +625,58 @@ function HubMascot() {
 }
 
 // ─────────────────────────── Main Page ───────────────────────────
+interface RewardData {
+  earned: boolean;
+  reward?: string;
+  message?: string;
+  alreadyClaimed?: boolean;
+}
+
 export default function GamesPage() {
   const [view, setView] = useState<View>("hub");
   const [activeGame, setActiveGame] = useState<GameId>("snake");
   const [lastScore, setLastScore] = useState(0);
   const [isNewRecord, setIsNewRecord] = useState(false);
   const [playKey, setPlayKey] = useState(0); // force remount to restart game
+  const [rewardData, setRewardData] = useState<RewardData | null>(null);
 
   const activeConfig = GAMES.find((g) => g.id === activeGame)!;
 
   function goToIntro(id: GameId) {
     setActiveGame(id);
     setView("intro");
+    setRewardData(null);
   }
 
   function startGame() {
     setPlayKey((k) => k + 1);
     setView("playing");
+    setRewardData(null);
   }
 
-  const handleGameOver = useCallback((score: number) => {
+  const handleGameOver = useCallback(async (score: number) => {
     const prevBest = getBest(activeConfig.storageKey);
     const newRecord = score > prevBest;
     if (newRecord) setBest(activeConfig.storageKey, score);
     setLastScore(score);
     setIsNewRecord(newRecord);
     setView("result");
-  }, [activeConfig.storageKey]);
+
+    // Try to claim reward (non-blocking)
+    try {
+      const res = await fetch("/api/games/reward", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game: activeConfig.id, score }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRewardData(data);
+      }
+    } catch {
+      // ignore — reward is a bonus, not critical
+    }
+  }, [activeConfig.storageKey, activeConfig.id]);
 
   // ── Hub ──
   if (view === "hub") {
@@ -728,6 +781,7 @@ export default function GamesPage() {
         game={activeConfig}
         score={lastScore}
         isNewRecord={isNewRecord}
+        rewardData={rewardData}
         onPlayAgain={startGame}
         onLeaderboard={() => setView("leaderboard")}
         onHub={() => setView("hub")}

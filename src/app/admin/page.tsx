@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import Link from "next/link";
 import {
   Users, CreditCard, BarChart3, TrendingUp,
@@ -8,8 +7,9 @@ import {
 } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
 import { pool } from "@/lib/db";
-import { verifyAdminPin } from "@/lib/auth/adminPin";
+
 import { AdminManagement } from "./AdminManagement";
+import { AdminActions } from "./AdminActions";
 import { BottomNav } from "@/app/components/BottomNav";
 
 export default async function AdminPage() {
@@ -24,12 +24,6 @@ export default async function AdminPage() {
   );
   const isAdmin = adminRes.rows[0]?.is_admin === true || session.phone === ADMIN_PHONE;
   if (!isAdmin) redirect("/dashboard");
-
-  // Must have verified the admin PIN
-  const cookieStore = await cookies();
-  const pinCookie = cookieStore.get("ay_admin_pin")?.value;
-  const pinOk = await verifyAdminPin(pinCookie);
-  if (!pinOk) redirect("/admin/pin");
 
   // ── Data ──────────────────────────────────────────────────────
   const [
@@ -271,6 +265,15 @@ export default async function AdminPage() {
             سیستم آنلاین · {total > 0 ? `${toPersian(total)} کاربر ثبت‌نام کرده` : "اولین کاربر منتظره"}
           </span>
           <div style={{ marginRight: "auto", width: 6, height: 6, borderRadius: "50%", background: "#34d399", boxShadow: "0 0 6px #34d399" }} />
+        </div>
+
+        {/* ── Quick Actions ─────────────────────────────────── */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+            <Activity size={14} style={{ color: "#a5b4fc" }} />
+            <span style={{ fontWeight: 800, fontSize: 15 }}>عملیات سریع</span>
+          </div>
+          <AdminActions crawlSecret={process.env.CRAWL_SECRET} />
         </div>
 
         {/* ── User Management ──────────────────────────────── */}

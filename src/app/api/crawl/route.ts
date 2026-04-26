@@ -13,27 +13,31 @@ import { migrateCrawlTables } from "@/lib/crawlers/db-migrate";
 import { scrapeAllJobs }     from "@/lib/crawlers/scraper-jobs";
 import { scrapeAllCourses }  from "@/lib/crawlers/scraper-courses";
 import { scrapeAllAccounts } from "@/lib/crawlers/scraper-accounts";
+import { CURATED_TOOLS }     from "@/lib/crawlers/tools";
 import { writeJobsMd, writeCoursesMd, writeAccountsMd } from "@/lib/crawlers/md-writer";
 
 /* ── GET — crawl stats ────────────────────────────────────────────── */
 export async function GET() {
   try {
-    const [jobs, courses, accounts] = await Promise.all([
+    const [jobs, courses, accounts, tools] = await Promise.all([
       pool.query("SELECT COUNT(*) FROM crawled_jobs"),
       pool.query("SELECT COUNT(*) FROM crawled_courses"),
       pool.query("SELECT COUNT(*) FROM crawled_accounts"),
+      pool.query("SELECT COUNT(*) FROM crawled_tools").catch(() => ({ rows: [{ count: "0" }] })),
     ]);
 
-    const [lastJob, lastCourse, lastAccount] = await Promise.all([
+    const [lastJob, lastCourse, lastAccount, lastTool] = await Promise.all([
       pool.query("SELECT MAX(crawled_at) as last FROM crawled_jobs"),
       pool.query("SELECT MAX(crawled_at) as last FROM crawled_courses"),
       pool.query("SELECT MAX(crawled_at) as last FROM crawled_accounts"),
+      pool.query("SELECT MAX(crawled_at) as last FROM crawled_tools").catch(() => ({ rows: [{ last: null }] })),
     ]);
 
     return NextResponse.json({
-      jobs:     { total: parseInt(jobs.rows[0].count), last_crawl: lastJob.rows[0].last },
-      courses:  { total: parseInt(courses.rows[0].count), last_crawl: lastCourse.rows[0].last },
+      jobs:     { total: parseInt(jobs.rows[0].count),     last_crawl: lastJob.rows[0].last },
+      courses:  { total: parseInt(courses.rows[0].count),  last_crawl: lastCourse.rows[0].last },
       accounts: { total: parseInt(accounts.rows[0].count), last_crawl: lastAccount.rows[0].last },
+      tools:    { total: parseInt(tools.rows[0].count),    last_crawl: lastTool.rows[0].last },
     });
   } catch (e) {
     return NextResponse.json({ error: "DB not ready" }, { status: 503 });
@@ -52,7 +56,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body    = await req.json().catch(() => ({}));
-  const targets = (body.targets as string[] | undefined) ?? ["jobs", "courses", "accounts"];
+  const targets = (body.targets as string[] | undefined) ?? ["jobs", "courses", "accounts", "tools"];
 
   /* Ensure tables exist */
   try {
@@ -163,6 +167,37 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       errors.push(String(e));
       report.accounts = { count: 0, errors };
+    }
+  }
+
+  /* ── Tools ───────────────────────────────────────────────────── */
+  if (targets.includes("tools")) {
+    const errors: string[] = [];
+    try {
+      let count = 0;
+      for (const t of CURATED_TOOLS) {
+        try {
+          await pool.query(`
+            INSERT INTO crawled_tools
+              (name, tagline, description, url, categories, use_cases, pricing_model, difficulty, logo_url, is_iran_accessible)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+            ON CONFLICT (name) DO UPDATE SET
+              tagline=EXCLUDED.tagline, description=EXCLUDED.description,
+              categories=EXCLUDED.categories, use_cases=EXCLUDED.use_cases,
+              pricing_model=EXCLUDED.pricing_model, difficulty=EXCLUDED.difficulty,
+              crawled_at=NOW()
+          `, [
+            t.name, t.tagline, t.description, t.url,
+            t.categories, t.use_cases, t.pricing_model,
+            t.difficulty, t.logo_url ?? null, t.is_iran_accessible,
+          ]);
+          count++;
+        } catch { /* skip */ }
+      }
+      report.tools = { count, errors };
+    } catch (e) {
+      errors.push(String(e));
+      report.tools = { count: 0, errors };
     }
   }
 

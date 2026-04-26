@@ -268,12 +268,15 @@ export function ChatClient({
   nickname,
   jobTitle,
   hasAnalysis,
+  plan = "free",
 }: {
   nickname: string;
   jobTitle: string;
   industry: string;
   hasAnalysis: boolean;
+  plan?: string;
 }) {
+  const FREE_DAILY_LIMIT = 5;
   const [messages, setMessages]             = useState<Message[]>([]);
   const [input, setInput]                   = useState("");
   const [isStreaming, setIsStreaming]        = useState(false);
@@ -283,6 +286,8 @@ export function ChatClient({
   const [conversations, setConversations]   = useState<Conversation[]>([]);
   const [convLoading, setConvLoading]       = useState(false);
   const [currentConvId, setCurrentConvId]  = useState<string | null>(null);
+  const [dailyUsed, setDailyUsed]          = useState(0);
+  const [limitReached, setLimitReached]    = useState(false);
 
   const bottomRef          = useRef<HTMLDivElement>(null);
   const inputRef           = useRef<HTMLTextAreaElement>(null);
@@ -291,6 +296,19 @@ export function ChatClient({
   const isAtBottomRef      = useRef(true);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [lastInput, setLastInput]         = useState("");
+
+  // Fetch today's chat usage for free users
+  useEffect(() => {
+    if (plan !== "free") return;
+    fetch("/api/usage?type=chat_today")
+      .then(r => r.json())
+      .then(d => {
+        const used = d.chat_today ?? 0;
+        setDailyUsed(used);
+        if (used >= FREE_DAILY_LIMIT) setLimitReached(true);
+      })
+      .catch(() => {});
+  }, [plan]);
 
   useEffect(() => {
     if (isAtBottomRef.current) {
@@ -437,12 +455,18 @@ export function ChatClient({
 
     } catch (e: unknown) {
       if (e instanceof Error && e.name === "AbortError") return;
-      setError(e instanceof Error ? e.message : "خطا در ارسال پیام");
+      const msg = e instanceof Error ? e.message : "خطا در ارسال پیام";
+      if (msg.includes("daily_limit") || msg.includes("429")) {
+        setLimitReached(true);
+        setDailyUsed(FREE_DAILY_LIMIT);
+      }
+      setError(msg);
       setMessages((prev) => prev.filter((m) => m.id !== assistantId));
     } finally {
       setIsStreaming(false);
+      if (plan === "free") setDailyUsed(prev => Math.min(prev + 1, FREE_DAILY_LIMIT));
     }
-  }, [messages, isStreaming, mode, currentConvId, fetchConversations]);
+  }, [messages, isStreaming, mode, currentConvId, fetchConversations, plan]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -692,6 +716,60 @@ export function ChatClient({
         )}
         </div>
 
+        {/* ── Daily limit banner (free users) ── */}
+        {plan === "free" && limitReached && (
+          <div style={{
+            flexShrink: 0, margin: "0 14px 8px",
+            padding: "11px 14px", borderRadius: 14,
+            background: "linear-gradient(135deg, rgba(250,204,21,0.10), rgba(234,179,8,0.07))",
+            border: "1px solid rgba(250,204,21,0.28)",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+          }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 12.5, color: "#fde68a" }}>
+                🔒 سقف روزانه تموم شد
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(253,230,138,0.65)", marginTop: 2 }}>
+                فردا ۵ پیام جدید میگیری — یا همین الان Pro بشو
+              </div>
+            </div>
+            <a
+              href="/billing"
+              style={{
+                padding: "7px 13px", borderRadius: 9, fontSize: 11.5, fontWeight: 700,
+                background: "linear-gradient(135deg, #fde68a, #eab308)", color: "#2a1d03",
+                textDecoration: "none", flexShrink: 0,
+              }}
+            >
+              ارتقا
+            </a>
+          </div>
+        )}
+
+        {/* ── Daily usage counter (free users, not yet at limit) ── */}
+        {plan === "free" && !limitReached && dailyUsed > 0 && (
+          <div style={{
+            flexShrink: 0, marginBottom: 4, padding: "4px 18px",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 4,
+              fontSize: 10.5, color: "rgba(232,239,234,0.38)",
+            }}>
+              {Array.from({ length: FREE_DAILY_LIMIT }).map((_, i) => (
+                <span key={i} style={{
+                  width: 6, height: 6, borderRadius: "50%",
+                  background: i < dailyUsed ? "rgba(52,211,153,0.6)" : "rgba(110,231,183,0.15)",
+                  transition: "background 0.3s",
+                }} />
+              ))}
+              <span style={{ marginRight: 4 }}>
+                {dailyUsed} از {FREE_DAILY_LIMIT} پیام امروز
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* ── Composer ── */}
         <div style={{
           flexShrink: 0, padding: "8px 14px",
@@ -702,9 +780,10 @@ export function ChatClient({
             padding: 6, borderRadius: 20,
             background: "linear-gradient(180deg, rgba(31,46,40,0.9) 0%, rgba(18,30,24,0.85) 100%)",
             backdropFilter: "blur(18px) saturate(160%)",
-            border: `1px solid ${mode === "free" ? "rgba(139,92,246,0.28)" : "rgba(110,231,183,0.24)"}`,
+            border: `1px solid ${limitReached && plan === "free" ? "rgba(250,204,21,0.2)" : mode === "free" ? "rgba(139,92,246,0.28)" : "rgba(110,231,183,0.24)"}`,
             boxShadow: "0 12px 40px rgba(0,0,0,0.55)",
             display: "flex", alignItems: "center", gap: 8,
+            opacity: limitReached && plan === "free" ? 0.6 : 1,
           }}>
             <div style={{
               width: 38, height: 38, borderRadius: 12, flexShrink: 0,
@@ -725,29 +804,35 @@ export function ChatClient({
                 e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
               }}
               onKeyDown={handleKeyDown}
-              placeholder={mode === "free" ? "هر چیزی بپرس…" : "سوال شغلی‌ات رو بپرس…"}
+              placeholder={
+                limitReached && plan === "free"
+                  ? "سقف روزانه تموم شد — فردا برمیگرده"
+                  : mode === "free" ? "هر چیزی بپرس…" : "سوال شغلی‌ات رو بپرس…"
+              }
               rows={1}
-              disabled={isStreaming}
+              disabled={isStreaming || (limitReached && plan === "free")}
               style={{
                 flex: 1, background: "none", border: "none", outline: "none",
                 resize: "none", fontSize: 13.5, color: "#e8efea",
                 fontFamily: "inherit", caretColor: "#34d399",
-                minHeight: 38, maxHeight: 120, padding: "9px 4px",
+                minHeight: 38, maxHeight: 120, padding: "9px 10px",
+                cursor: limitReached && plan === "free" ? "not-allowed" : "text",
               }}
             />
 
             <button
               onClick={() => sendMessage(input)}
-              disabled={!input.trim() || isStreaming}
+              disabled={!input.trim() || isStreaming || (limitReached && plan === "free")}
               style={{
                 width: 38, height: 38, borderRadius: 12, flexShrink: 0,
                 background: mode === "free"
                   ? "linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)"
                   : "linear-gradient(135deg, #34d399 0%, #10b981 100%)",
-                border: "none", cursor: (!input.trim() || isStreaming) ? "not-allowed" : "pointer",
+                border: "none",
+                cursor: (!input.trim() || isStreaming || (limitReached && plan === "free")) ? "not-allowed" : "pointer",
                 display: "grid", placeItems: "center",
                 boxShadow: mode === "free" ? "0 4px 16px rgba(124,58,237,0.35)" : "0 4px 16px rgba(52,211,153,0.35)",
-                opacity: (!input.trim() || isStreaming) ? 0.4 : 1,
+                opacity: (!input.trim() || isStreaming || (limitReached && plan === "free")) ? 0.4 : 1,
                 transition: "opacity 0.2s",
               }}
             >

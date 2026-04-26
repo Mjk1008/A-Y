@@ -1,340 +1,315 @@
 "use client";
 
-import { ArrowRight, Lock, Crown, ChevronLeft, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowRight, Crown, Zap, Search, Globe, Lock } from "lucide-react";
 import Link from "next/link";
 import { BottomNav } from "@/app/components/BottomNav";
 
 interface Tool {
+  id?: number;
   name: string;
-  tag: string;
-  tone: "gold" | "emerald" | "cyan" | "violet" | "rose";
-  use: string;
-  level: string;
-  locked: boolean;
+  tagline?: string;
+  description?: string;
+  use?: string;
+  url?: string;
+  categories?: string[];
+  use_cases?: string[];
+  pricing_model?: string;
+  difficulty?: string;
+  logo_url?: string;
+  is_iran_accessible?: boolean;
+  // legacy fields for curated fallback
+  tag?: string;
+  level?: string;
+  locked?: boolean;
   hero?: boolean;
   heroDesc?: string;
+  tone?: string;
 }
 
-const TOOLS: Tool[] = [
-  {
-    name: "ChatGPT",
-    tag: "چت",
-    tone: "emerald",
-    use: "نوشتن، تحلیل، ایده‌پردازی و مشاوره",
-    level: "مبتدی",
-    locked: false,
-    hero: true,
-    heroDesc:
-      "روزانه ۳۰ دقیقه با ChatGPT کار کن — ایمیل، گزارش، ایده‌پردازی. هر کاری که داری رو سریع‌تر تموم کن.",
-  },
-  {
-    name: "Claude",
-    tag: "کل",
-    tone: "emerald",
-    use: "تحلیل عمیق، نگارش حرفه‌ای، تحقیق",
-    level: "مبتدی",
-    locked: false,
-  },
-  {
-    name: "Perplexity",
-    tag: "پر",
-    tone: "cyan",
-    use: "تحقیق سریع با منابع معتبر",
-    level: "مبتدی",
-    locked: false,
-  },
-  {
-    name: "Notion AI",
-    tag: "نو",
-    tone: "violet",
-    use: "مدیریت دانش و یادداشت‌برداری هوشمند",
-    level: "مبتدی",
-    locked: false,
-  },
-  {
-    name: "Cursor",
-    tag: "کر",
-    tone: "gold",
-    use: "کدنویسی با کمک AI در محیط VS Code",
-    level: "متوسط",
-    locked: false,
-  },
-  {
-    name: "Canva AI",
-    tag: "کا",
-    tone: "rose",
-    use: "طراحی بنر، پست و محتوای بصری",
-    level: "مبتدی",
-    locked: false,
-  },
-  {
-    name: "GitHub Copilot",
-    tag: "گی",
-    tone: "gold",
-    use: "تکمیل خودکار کد برای توسعه‌دهندگان",
-    level: "متوسط",
-    locked: true,
-  },
-  {
-    name: "Midjourney",
-    tag: "ام",
-    tone: "rose",
-    use: "تولید تصویر برای مودبُرد و طراحی",
-    level: "پیشرفته",
-    locked: true,
-  },
-  {
-    name: "Figma AI",
-    tag: "فی",
-    tone: "violet",
-    use: "auto-layout و تولید خودکار کامپوننت",
-    level: "متوسط",
-    locked: true,
-  },
-  {
-    name: "Otter.ai",
-    tag: "اُت",
-    tone: "cyan",
-    use: "رونویسی و خلاصه جلسات به‌صورت خودکار",
-    level: "مبتدی",
-    locked: true,
-  },
-  {
-    name: "Julius AI",
-    tag: "جو",
-    tone: "gold",
-    use: "تحلیل داده و اکسل با زبان طبیعی",
-    level: "متوسط",
-    locked: true,
-  },
-  {
-    name: "Gamma",
-    tag: "گا",
-    tone: "violet",
-    use: "ساخت ارائه و اسلاید با AI",
-    level: "مبتدی",
-    locked: true,
-  },
-];
-
-const TONE_COLORS = {
-  gold: { bg: "rgba(250,204,21,0.14)", text: "#fde68a", border: "rgba(250,204,21,0.28)" },
-  emerald: { bg: "rgba(16,185,129,0.14)", text: "#6ee7b7", border: "rgba(52,211,153,0.28)" },
-  cyan: { bg: "rgba(6,182,212,0.14)", text: "#67e8f9", border: "rgba(6,182,212,0.28)" },
-  violet: { bg: "rgba(139,92,246,0.14)", text: "#c4b5fd", border: "rgba(139,92,246,0.28)" },
-  rose: { bg: "rgba(244,63,94,0.14)", text: "#fda4af", border: "rgba(244,63,94,0.28)" },
+const DIFFICULTY_LABEL: Record<string, string> = {
+  beginner: "مبتدی",
+  intermediate: "متوسط",
+  advanced: "پیشرفته",
 };
 
-function ToolGlyph({ tag, tone, size = 40 }: { tag: string; tone: Tool["tone"]; size?: number }) {
-  const c = TONE_COLORS[tone];
+const PRICING_LABEL: Record<string, string> = {
+  free: "رایگان",
+  freemium: "رایگان + پولی",
+  paid: "پولی",
+  open_source: "متن‌باز",
+};
+
+const CATEGORIES = ["همه", "محتوا", "کدنویسی", "طراحی", "تحلیل", "مارکتینگ", "تحقیق", "ترجمه"];
+
+function ToolInitial({ name, size = 40 }: { name: string; size?: number }) {
+  const colors = [
+    { bg: "rgba(16,185,129,0.18)", text: "#6ee7b7", border: "rgba(52,211,153,0.3)" },
+    { bg: "rgba(250,204,21,0.14)", text: "#fde68a", border: "rgba(250,204,21,0.28)" },
+    { bg: "rgba(139,92,246,0.14)", text: "#c4b5fd", border: "rgba(139,92,246,0.28)" },
+    { bg: "rgba(6,182,212,0.14)", text: "#67e8f9", border: "rgba(6,182,212,0.28)" },
+    { bg: "rgba(244,63,94,0.14)", text: "#fda4af", border: "rgba(244,63,94,0.28)" },
+  ];
+  const idx = name.charCodeAt(0) % colors.length;
+  const c = colors[idx];
+  const letters = name.slice(0, 2).toUpperCase();
+
   return (
     <div
-      className="flex-shrink-0 grid place-items-center rounded-xl font-black"
       style={{
-        width: size,
-        height: size,
-        background: c.bg,
-        border: `1px solid ${c.border}`,
-        color: c.text,
-        fontSize: size * 0.32,
-        borderRadius: size * 0.26,
+        width: size, height: size, borderRadius: size * 0.28,
+        background: c.bg, border: `1px solid ${c.border}`,
+        color: c.text, fontSize: size * 0.3, fontWeight: 900,
+        display: "grid", placeItems: "center", flexShrink: 0,
       }}
     >
-      {tag}
+      {letters}
     </div>
   );
 }
 
 export default function ToolsPage() {
-  const hero = TOOLS.find((t) => t.hero)!;
-  const rest = TOOLS.filter((t) => !t.hero);
+  const [tools, setTools]         = useState<Tool[]>([]);
+  const [total, setTotal]         = useState(0);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState("");
+  const [category, setCategory]   = useState("همه");
+  const [difficulty, setDiff]     = useState("");
+  const [iranOnly, setIranOnly]   = useState(false);
+  const [query, setQuery]         = useState("");   // debounced search
+
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams({ limit: "50" });
+    if (query)      params.set("q", query);
+    if (category !== "همه") params.set("category", category);
+    if (difficulty) params.set("difficulty", difficulty);
+    if (iranOnly)   params.set("iran", "true");
+
+    fetch(`/api/tools?${params}`)
+      .then(r => r.json())
+      .then(d => { setTools(d.tools || []); setTotal(d.total || 0); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [query, category, difficulty, iranOnly]);
 
   return (
     <div
       dir="rtl"
-      className="min-h-screen pb-28"
       style={{
-        background:
-          "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(16,185,129,0.06), transparent 60%), #020306",
+        minHeight: "100dvh", paddingBottom: 96,
+        background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(16,185,129,0.06), transparent 60%), #020306",
         color: "#e8efea",
         fontFamily: "'Vazirmatn', sans-serif",
       }}
     >
       {/* Header */}
-      <div
-        className="sticky top-0 z-30"
-        style={{
-          background: "rgba(2,3,6,0.88)",
-          backdropFilter: "blur(16px)",
-          borderBottom: "1px solid rgba(110,231,183,0.08)",
-        }}
-      >
-        <div className="mx-auto max-w-lg px-5 py-4 flex items-center gap-3">
-          <Link
-            href="/dashboard"
-            className="w-9 h-9 rounded-xl grid place-items-center flex-shrink-0"
-            style={{
-              background: "rgba(31,46,40,0.6)",
-              border: "1px solid rgba(110,231,183,0.14)",
-            }}
-          >
-            <ArrowRight size={16} className="text-white" />
+      <div style={{
+        position: "sticky", top: 0, zIndex: 30,
+        background: "rgba(2,3,6,0.9)", backdropFilter: "blur(16px)",
+        borderBottom: "1px solid rgba(110,231,183,0.08)",
+      }}>
+        <div style={{ maxWidth: 520, margin: "0 auto", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href="/dashboard" style={{
+            width: 36, height: 36, borderRadius: 10, display: "grid", placeItems: "center",
+            background: "rgba(31,46,40,0.6)", border: "1px solid rgba(110,231,183,0.14)",
+          }}>
+            <ArrowRight size={15} color="#e8efea" />
           </Link>
-          <div className="flex-1 flex justify-center">
-            <span
-              className="text-[11px] font-bold tracking-widest uppercase px-3 py-1 rounded-full"
-              style={{
-                background: "rgba(16,185,129,0.1)",
-                color: "#6ee7b7",
-                border: "1px solid rgba(52,211,153,0.2)",
-              }}
-            >
-              ابزارهای AI من
-            </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: 14 }}>ابزارهای AI</div>
+            <div style={{ fontSize: 10, color: "rgba(110,231,183,0.6)", marginTop: 1 }}>
+              {total > 0 ? `${total} ابزار` : "در حال بارگذاری..."}
+            </div>
           </div>
-          <div className="w-9" />
+          <Zap size={16} color="rgba(110,231,183,0.5)" />
         </div>
       </div>
 
-      <div className="mx-auto max-w-lg px-4 pt-6">
-        {/* Hero tool */}
-        <div
-          className="relative overflow-hidden rounded-2xl p-4 mb-4"
-          style={{
-            background: "linear-gradient(180deg, rgba(42,29,3,0.75) 0%, rgba(18,12,1,0.6) 100%)",
-            border: "1px solid rgba(250,204,21,0.28)",
-          }}
-        >
-          {/* Gold glow */}
-          <div
-            className="absolute inset-0 pointer-events-none"
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "16px" }}>
+
+        {/* Search */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          background: "rgba(31,46,40,0.55)", border: "1px solid rgba(110,231,183,0.12)",
+          borderRadius: 14, padding: "10px 14px", marginBottom: 14,
+        }}>
+          <Search size={15} color="rgba(110,231,183,0.5)" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="جستجوی ابزار..."
             style={{
-              background:
-                "radial-gradient(ellipse 80% 60% at 100% 0%, rgba(250,204,21,0.18), transparent 60%)",
+              flex: 1, background: "none", border: "none", outline: "none",
+              fontSize: 13, color: "#e8efea", fontFamily: "inherit",
             }}
           />
+        </div>
 
-          <div className="relative flex items-center gap-3 mb-3">
-            <ToolGlyph tag={hero.tag} tone={hero.tone} size={52} />
-            <div className="flex-1">
-              <div
-                className="text-[10px] font-bold tracking-[2px] uppercase"
-                style={{ color: "#fde68a", fontFamily: "'JetBrains Mono', monospace" }}
-              >
-                ابزار اول هفته
-              </div>
-              <div
-                className="font-black text-[22px] mt-0.5 leading-none"
-                style={{ color: "#fde68a" }}
-              >
-                {hero.name}
-              </div>
-            </div>
-          </div>
+        {/* Category tabs */}
+        <div style={{
+          display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 12,
+          scrollbarWidth: "none",
+        }}>
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              style={{
+                flexShrink: 0, padding: "5px 12px", borderRadius: 20, fontSize: 11.5, fontWeight: 700,
+                fontFamily: "inherit", cursor: "pointer", border: "1px solid",
+                background: category === cat ? "rgba(52,211,153,0.18)" : "rgba(31,46,40,0.4)",
+                borderColor: category === cat ? "rgba(52,211,153,0.4)" : "rgba(110,231,183,0.12)",
+                color: category === cat ? "#6ee7b7" : "rgba(232,239,234,0.55)",
+                transition: "all 0.15s",
+              }}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
 
-          <p className="relative text-[12.5px] leading-relaxed mb-3" style={{ color: "rgba(232,239,234,0.78)" }}>
-            {hero.heroDesc}
-          </p>
-
-          <a
-            href="https://chat.openai.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center h-9 px-5 rounded-xl text-[13px] font-bold"
+        {/* Filters row */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+          {/* Difficulty */}
+          <select
+            value={difficulty}
+            onChange={e => setDiff(e.target.value)}
             style={{
-              background: "linear-gradient(180deg, #fde68a, #eab308)",
-              color: "#2a1d03",
-              textDecoration: "none",
+              padding: "6px 10px", borderRadius: 10, fontSize: 11.5, fontWeight: 600,
+              background: "rgba(31,46,40,0.5)", border: "1px solid rgba(110,231,183,0.14)",
+              color: difficulty ? "#6ee7b7" : "rgba(232,239,234,0.5)",
+              fontFamily: "inherit", cursor: "pointer",
             }}
           >
-            شروع کن
-          </a>
+            <option value="">سطح: همه</option>
+            <option value="beginner">مبتدی</option>
+            <option value="intermediate">متوسط</option>
+            <option value="advanced">پیشرفته</option>
+          </select>
+
+          {/* Iran accessible toggle */}
+          <button
+            onClick={() => setIranOnly(!iranOnly)}
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              padding: "6px 12px", borderRadius: 10, fontSize: 11.5, fontWeight: 600,
+              fontFamily: "inherit", cursor: "pointer", border: "1px solid",
+              background: iranOnly ? "rgba(16,185,129,0.18)" : "rgba(31,46,40,0.5)",
+              borderColor: iranOnly ? "rgba(52,211,153,0.4)" : "rgba(110,231,183,0.14)",
+              color: iranOnly ? "#6ee7b7" : "rgba(232,239,234,0.5)",
+              transition: "all 0.15s",
+            }}
+          >
+            <Globe size={12} />
+            بدون VPN
+          </button>
         </div>
 
-        {/* Tool list */}
-        <div className="flex flex-col gap-2 mb-4">
-          {rest.map((tool, i) => {
-            const c = TONE_COLORS[tool.tone];
-            return (
-              <div
-                key={i}
-                className="relative flex items-center gap-3 p-3 rounded-2xl overflow-hidden"
-                style={{
-                  background: "rgba(31,46,40,0.55)",
-                  border: "1px solid rgba(110,231,183,0.10)",
-                  backdropFilter: "blur(10px)",
-                  opacity: tool.locked ? 1 : 1,
-                }}
-              >
-                <ToolGlyph tag={tool.tag} tone={tool.tone} size={40} />
-                <div className="flex-1 min-w-0" style={{ opacity: tool.locked ? 0.4 : 1 }}>
-                  <div className="font-bold text-[13.5px]">{tool.name}</div>
-                  <div className="text-[11.5px] mt-0.5" style={{ color: "rgba(232,239,234,0.6)" }}>
-                    {tool.use}
+        {/* Tools list */}
+        {loading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[1,2,3,4,5].map(i => (
+              <div key={i} style={{
+                height: 72, borderRadius: 16,
+                background: "rgba(31,46,40,0.3)", border: "1px solid rgba(110,231,183,0.06)",
+                animation: "pulse 1.5s ease-in-out infinite",
+              }} />
+            ))}
+          </div>
+        ) : tools.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 20px", color: "rgba(232,239,234,0.4)" }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
+            <div style={{ fontSize: 13 }}>ابزاری پیدا نشد</div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {tools.map((tool, i) => {
+              const diff = DIFFICULTY_LABEL[tool.difficulty || ""] || tool.level || "";
+              const price = PRICING_LABEL[tool.pricing_model || ""] || "";
+              const isFree = tool.pricing_model === "free" || tool.pricing_model === "freemium";
+
+              return (
+                <a
+                  key={tool.id || i}
+                  href={tool.url || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "12px 14px", borderRadius: 16, textDecoration: "none",
+                    background: "rgba(31,46,40,0.55)", border: "1px solid rgba(110,231,183,0.10)",
+                    transition: "border-color 0.15s",
+                  }}
+                >
+                  <ToolInitial name={tool.name} size={44} />
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, color: "#e8efea" }}>
+                      {tool.name}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: "rgba(232,239,234,0.55)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {tool.tagline || tool.use || (tool.use_cases || []).join("، ")}
+                    </div>
                   </div>
-                </div>
 
-                {!tool.locked && (
-                  <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded"
-                    style={{ background: c.bg, color: c.text }}
-                  >
-                    {tool.level}
-                  </span>
-                )}
-                {tool.locked && (
-                  <>
-                    <div
-                      className="absolute inset-0 pointer-events-none"
-                      style={{
-                        background:
-                          "linear-gradient(270deg, rgba(5,9,10,0.85) 0%, transparent 50%)",
-                      }}
-                    />
-                    <Lock size={16} style={{ color: "rgba(250,204,21,0.7)" }} strokeWidth={1.8} />
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                    {diff && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 8,
+                        background: "rgba(110,231,183,0.1)", color: "rgba(110,231,183,0.8)",
+                      }}>
+                        {diff}
+                      </span>
+                    )}
+                    {isFree && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 8,
+                        background: "rgba(16,185,129,0.15)", color: "#34d399",
+                      }}>
+                        {price}
+                      </span>
+                    )}
+                    {tool.is_iran_accessible && (
+                      <Globe size={11} color="rgba(52,211,153,0.6)" />
+                    )}
+                    {!tool.is_iran_accessible && (
+                      <Lock size={11} color="rgba(250,204,21,0.5)" strokeWidth={1.8} />
+                    )}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        )}
 
         {/* Upgrade CTA */}
-        <div
-          className="flex items-center gap-3 p-4 rounded-2xl mb-4"
-          style={{
-            background: "linear-gradient(180deg, rgba(42,29,3,0.55), rgba(18,12,1,0.5))",
-            border: "1px solid rgba(250,204,21,0.25)",
-          }}
-        >
-          <Crown size={22} style={{ color: "#fde68a" }} strokeWidth={1.8} />
-          <div className="flex-1">
-            <div className="font-bold text-[13px]">با پرو، همه ابزارها باز می‌شن</div>
-            <div className="text-[11px] mt-0.5" style={{ color: "rgba(232,239,234,0.55)" }}>
-              + هر هفته ۳ ابزار تازه
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "14px 16px", borderRadius: 16, marginTop: 16,
+          background: "linear-gradient(180deg, rgba(42,29,3,0.55), rgba(18,12,1,0.5))",
+          border: "1px solid rgba(250,204,21,0.22)",
+        }}>
+          <Crown size={20} color="#fde68a" strokeWidth={1.8} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 13 }}>با Pro، همه ابزارها</div>
+            <div style={{ fontSize: 11, color: "rgba(232,239,234,0.5)", marginTop: 2 }}>
+              + هر هفته ابزار جدید اضافه میشه
             </div>
           </div>
-          <Link
-            href="/billing"
-            className="h-8 px-4 rounded-xl text-[12px] font-bold flex items-center"
-            style={{
-              background: "linear-gradient(180deg, #fde68a, #eab308)",
-              color: "#2a1d03",
-            }}
-          >
+          <Link href="/billing" style={{
+            padding: "7px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700,
+            background: "linear-gradient(180deg, #fde68a, #eab308)", color: "#2a1d03",
+            textDecoration: "none",
+          }}>
             ارتقا
           </Link>
-        </div>
-
-        {/* Footer kicker */}
-        <div className="flex items-center gap-2 py-4" style={{ color: "rgba(110,231,183,0.5)" }}>
-          <Zap size={12} />
-          <span
-            className="text-[10px] font-bold tracking-widest uppercase"
-            style={{ fontFamily: "'JetBrains Mono', monospace" }}
-          >
-            هر هفته ابزار جدید اضافه می‌شه
-          </span>
         </div>
       </div>
 

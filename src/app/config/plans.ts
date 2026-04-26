@@ -82,7 +82,7 @@ export const PLANS: Plan[] = [
     accent: "ink",
     highlights: [
       "۱ تحلیل در هفته",
-      "۳ ابزار AI پیشنهادی",
+      "۵ پیام چت در روز",
       "نقشه راه ۱ بار",
     ],
     limits: {
@@ -90,10 +90,10 @@ export const PLANS: Plan[] = [
       analysisOutputTokens:   2_000,
       roadmapsPerMonth:       0,
       roadmapsLifetime:       1,
-      chatMessagesPerMonth:   0,
-      chatContextTokens:      0,
-      chatOutputTokens:       0,
-      chatRateLimitPerMinute: 0,
+      chatMessagesPerMonth:   150,   /* 5/day × 30 — enforced daily at API */
+      chatContextTokens:      8_000,
+      chatOutputTokens:       500,
+      chatRateLimitPerMinute: 5,
       matchedJobsVisible:     3,
       jobMatchFrequency:      "weekly",
       support:                "email",

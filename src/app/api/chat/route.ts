@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { pool } from "@/lib/db";
+import { updateStreak } from "@/lib/streak";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -141,6 +142,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "no messages" }, { status: 400 });
     }
 
+    // ── Daily chat limit for free users (5 messages/day) ─────────
+    const FREE_DAILY_CHAT_LIMIT = 5;
+    if (session.plan === "free") {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const usageRes = await pool.query(
+        `SELECT COUNT(*) FROM usage_logs
+         WHERE user_id=$1 AND type='chat_message' AND created_at >= $2`,
+        [session.id, today.toISOString()]
+      );
+      const usedToday = parseInt(usageRes.rows[0].count ?? "0");
+      if (usedToday >= FREE_DAILY_CHAT_LIMIT) {
+        return NextResponse.json(
+          { error: "daily_limit", used: usedToday, limit: FREE_DAILY_CHAT_LIMIT, remaining: 0 },
+          { status: 429 }
+        );
+      }
+    }
+
     // Last user message (for mock + persistence)
     const lastUserMsg = messages.filter((m) => m.role === "user").pop()?.content ?? "";
 
@@ -162,11 +181,12 @@ export async function POST(req: NextRequest) {
       systemPrompt = FREE_SYSTEM_PROMPT;
     }
 
-    // Log usage (non-blocking)
+    // Log usage + update streak (non-blocking)
     pool.query(
       `INSERT INTO usage_logs (user_id, type, metadata) VALUES ($1, 'chat_message', $2)`,
       [session.id, JSON.stringify({ mode, messages_count: messages.length })]
     ).catch(() => {});
+    updateStreak(session.id).catch(() => {});
 
     const fullMessages: ChatMessage[] = [
       { role: "system", content: systemPrompt },

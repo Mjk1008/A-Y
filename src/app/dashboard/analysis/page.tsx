@@ -15,9 +15,11 @@ import {
   Award,
   AlertTriangle,
   ArrowRight,
+  Share2,
 } from "lucide-react";
 import { RoadmapSection } from "../RoadmapSection";
 import { BottomNav } from "@/app/components/BottomNav";
+import { ShareButton } from "./ShareButton";
 
 export default async function AnalysisPage() {
   const session = await getSession();
@@ -73,7 +75,8 @@ export default async function AnalysisPage() {
               })}
             </p>
           </div>
-          <div className="mr-auto">
+          <div className="mr-auto flex items-center gap-2">
+            <ShareButton analysisId={latest.id} />
             <Link
               href="/profile"
               className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11.5px] font-semibold text-emerald-300 transition hover:bg-emerald-500/20"

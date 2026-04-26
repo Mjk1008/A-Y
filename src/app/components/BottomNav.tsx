@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, User, CreditCard, Settings, MessageCircle } from "lucide-react";
+import { LayoutDashboard, User, MessageCircle, Newspaper, Wrench } from "lucide-react";
 
 const TABS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "خانه" },
   { href: "/chat",      icon: MessageCircle,   label: "مسیریاب" },
+  { href: "/tools",     icon: Wrench,          label: "ابزارها" },
+  { href: "/magazine",  icon: Newspaper,       label: "مجله" },
   { href: "/profile",   icon: User,            label: "پروفایل" },
-  { href: "/billing",   icon: CreditCard,      label: "اشتراک" },
-  { href: "/settings",  icon: Settings,        label: "تنظیمات" },
 ];
 
 // Also export tab config for use in other components

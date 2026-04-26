@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { pool } from "@/lib/db";
 import { analyzeProfile, type ProfileInput } from "@/lib/claude";
 import { PLANS } from "@/app/config/plans";
+import { updateStreak } from "@/lib/streak";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -72,11 +73,12 @@ export async function POST() {
       [session.id, JSON.stringify(input), JSON.stringify(result)]
     );
 
-    // ── Log usage ──────────────────────────────────────────────────────
+    // ── Log usage + update streak ─────────────────────────────────────
     await pool.query(
       `INSERT INTO usage_logs (user_id, type, metadata) VALUES ($1, 'analysis', $2)`,
       [session.id, JSON.stringify({ analysis_id: saved.rows[0].id, plan: session.plan })]
     );
+    updateStreak(session.id).catch(() => {});
 
     return NextResponse.json({ id: saved.rows[0].id, result });
   } catch (e: unknown) {
