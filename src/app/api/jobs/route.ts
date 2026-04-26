@@ -13,6 +13,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+/* ── Mock jobs (shown when crawler hasn't seeded data yet) ── */
+const MOCK_JOBS = [
+  { id:"m1", source:"jobinja", title:"کارشناس دیجیتال مارکتینگ", company:"دیجی‌کالا", location:"تهران", skills:["SEO","Google Ads","تولید محتوا","Analytics","ایمیل مارکتینگ"], url:"https://jobinja.ir", posted_at: new Date(Date.now()-1*864e5).toISOString(), is_remote:false },
+  { id:"m2", source:"jobvision", title:"برنامه‌نویس فرانت‌اند (React)", company:"فناپ", location:"تهران", skills:["React","TypeScript","Next.js","Tailwind","REST API"], url:"https://jobvision.ir", posted_at: new Date(Date.now()-2*864e5).toISOString(), is_remote:true },
+  { id:"m3", source:"irantalent", title:"مشاور فروش B2B", company:"تپسی", location:"تهران", skills:["مذاکره","CRM","فروش","Excel","ارتباط با مشتری"], url:"https://irantalent.com", posted_at: new Date(Date.now()-1*864e5).toISOString(), is_remote:false },
+  { id:"m4", source:"karboom", title:"طراح UI/UX", company:"آپ", location:"تهران", skills:["Figma","طراحی رابط کاربری","Prototyping","تحقیق کاربری","Adobe XD"], url:"https://karboom.io", posted_at: new Date(Date.now()-3*864e5).toISOString(), is_remote:true },
+  { id:"m5", source:"jobinja", title:"کارشناس تولید محتوا", company:"اسنپ", location:"تهران", skills:["نگارش","سئو","شبکه اجتماعی","ویرایش","WordPress"], url:"https://jobinja.ir", posted_at: new Date(Date.now()-2*864e5).toISOString(), is_remote:false },
+  { id:"m6", source:"jobvision", title:"تحلیلگر داده", company:"زرین‌پال", location:"تهران", skills:["Python","SQL","Power BI","Excel","داده‌کاوی"], url:"https://jobvision.ir", posted_at: new Date(Date.now()-4*864e5).toISOString(), is_remote:true },
+  { id:"m7", source:"irantalent", title:"مدیر محصول (Product Manager)", company:"ایرانسل", location:"تهران", skills:["مدیریت محصول","Agile","Jira","تحلیل رقبا","رودمپ محصول"], url:"https://irantalent.com", posted_at: new Date(Date.now()-1*864e5).toISOString(), is_remote:false },
+  { id:"m8", source:"karboom", title:"برنامه‌نویس بک‌اند (Node.js)", company:"بالانس", location:"مشهد", skills:["Node.js","TypeScript","PostgreSQL","Docker","REST API"], url:"https://karboom.io", posted_at: new Date(Date.now()-5*864e5).toISOString(), is_remote:true },
+  { id:"m9", source:"jobinja", title:"کارشناس منابع انسانی", company:"همراه اول", location:"تهران", skills:["استخدام","HRIS","ارزیابی عملکرد","آموزش","قانون کار"], url:"https://jobinja.ir", posted_at: new Date(Date.now()-3*864e5).toISOString(), is_remote:false },
+  { id:"m10", source:"jobvision", title:"کارشناس ارشد حسابداری", company:"مپنا", location:"تهران", skills:["حسابداری","Excel","Sage","گزارش‌گیری مالی","مالیات"], url:"https://jobvision.ir", posted_at: new Date(Date.now()-2*864e5).toISOString(), is_remote:false },
+  { id:"m11", source:"irantalent", title:"مهندس DevOps", company:"آریاتک", location:"تهران", skills:["Docker","Kubernetes","CI/CD","Linux","AWS"], url:"https://irantalent.com", posted_at: new Date(Date.now()-1*864e5).toISOString(), is_remote:true },
+  { id:"m12", source:"karboom", title:"کارشناس روابط عمومی", company:"بانک ملت", location:"تهران", skills:["روابط رسانه‌ای","بیانیه مطبوعاتی","مدیریت بحران","شبکه اجتماعی","ارتباطات"], url:"https://karboom.io", posted_at: new Date(Date.now()-6*864e5).toISOString(), is_remote:false },
+  { id:"m13", source:"jobinja", title:"کارشناس پشتیبانی مشتری", company:"اسنپ‌فود", location:"تهران", skills:["خدمات مشتری","CRM","Excel","مهارت ارتباطی","حل مشکل"], url:"https://jobinja.ir", posted_at: new Date(Date.now()-2*864e5).toISOString(), is_remote:true },
+  { id:"m14", source:"jobvision", title:"طراح گرافیک ارشد", company:"ونک‌استودیو", location:"اصفهان", skills:["Photoshop","Illustrator","برندینگ","طراحی بسته‌بندی","Typography"], url:"https://jobvision.ir", posted_at: new Date(Date.now()-4*864e5).toISOString(), is_remote:true },
+  { id:"m15", source:"karboom", title:"مهندس هوش مصنوعی", company:"آواتک", location:"تهران", skills:["Python","TensorFlow","یادگیری ماشین","NLP","PyTorch"], url:"https://karboom.io", posted_at: new Date(Date.now()-1*864e5).toISOString(), is_remote:false },
+];
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const q      = searchParams.get("q")      ?? "";
@@ -58,6 +77,14 @@ export async function GET(req: NextRequest) {
       values
     );
     const total = parseInt(countResult.rows[0].count);
+
+    if (total === 0) {
+      // Crawler not connected yet — return mock data with filtering applied
+      let mock = MOCK_JOBS;
+      if (q) mock = mock.filter(j => j.title.includes(q) || j.company.includes(q) || j.skills.some(s => s.includes(q)));
+      if (remote) mock = mock.filter(j => j.is_remote);
+      return NextResponse.json({ total: mock.length, limit, offset, jobs: mock.slice(offset, offset + limit) });
+    }
 
     values.push(limit, offset);
     const dataResult = await pool.query(

@@ -175,10 +175,5 @@ async function callMetis(p: ProfileInput): Promise<AnalysisResult> {
 
 export async function analyzeProfile(p: ProfileInput): Promise<AnalysisResult> {
   if (USE_MOCK) return mockAnalysis(p);
-  try {
-    return await callMetis(p);
-  } catch (e) {
-    console.error("Metis call failed, falling back to mock:", e);
-    return mockAnalysis(p);
-  }
+  return await callMetis(p); // errors propagate — no silent mock fallback in production
 }

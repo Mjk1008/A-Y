@@ -17,46 +17,102 @@ interface Tool {
 
 const TOOLS: Tool[] = [
   {
-    name: "Cursor",
-    tag: "کر",
-    tone: "gold",
-    use: "بررسی کد با توسعه‌دهنده‌ها",
-    level: "متوسط",
+    name: "ChatGPT",
+    tag: "چت",
+    tone: "emerald",
+    use: "نوشتن، تحلیل، ایده‌پردازی و مشاوره",
+    level: "مبتدی",
     locked: false,
     hero: true,
     heroDesc:
-      "کد PRها رو باز کن و با توسعه‌دهنده‌ها زبون مشترک پیدا کن. ۶ ساعت تمرین کافیه.",
+      "روزانه ۳۰ دقیقه با ChatGPT کار کن — ایمیل، گزارش، ایده‌پردازی. هر کاری که داری رو سریع‌تر تموم کن.",
   },
   {
     name: "Claude",
     tag: "کل",
     tone: "emerald",
-    use: "نوشتن بریف و پژوهش ثانویه",
+    use: "تحلیل عمیق، نگارش حرفه‌ای، تحقیق",
     level: "مبتدی",
     locked: false,
   },
   {
-    name: "v0",
-    tag: "ویز",
+    name: "Perplexity",
+    tag: "پر",
     tone: "cyan",
-    use: "تبدیل وایرفریم به کد React",
+    use: "تحقیق سریع با منابع معتبر",
+    level: "مبتدی",
+    locked: false,
+  },
+  {
+    name: "Notion AI",
+    tag: "نو",
+    tone: "violet",
+    use: "مدیریت دانش و یادداشت‌برداری هوشمند",
+    level: "مبتدی",
+    locked: false,
+  },
+  {
+    name: "Cursor",
+    tag: "کر",
+    tone: "gold",
+    use: "کدنویسی با کمک AI در محیط VS Code",
     level: "متوسط",
     locked: false,
   },
   {
-    name: "Figma AI",
-    tag: "فی",
-    tone: "violet",
-    use: "auto-layout و بازسازی پترن",
+    name: "Canva AI",
+    tag: "کا",
+    tone: "rose",
+    use: "طراحی بنر، پست و محتوای بصری",
     level: "مبتدی",
+    locked: false,
+  },
+  {
+    name: "GitHub Copilot",
+    tag: "گی",
+    tone: "gold",
+    use: "تکمیل خودکار کد برای توسعه‌دهندگان",
+    level: "متوسط",
     locked: true,
   },
   {
     name: "Midjourney",
     tag: "ام",
     tone: "rose",
-    use: "مودبُرد و ایده‌پردازی تصویری",
+    use: "تولید تصویر برای مودبُرد و طراحی",
     level: "پیشرفته",
+    locked: true,
+  },
+  {
+    name: "Figma AI",
+    tag: "فی",
+    tone: "violet",
+    use: "auto-layout و تولید خودکار کامپوننت",
+    level: "متوسط",
+    locked: true,
+  },
+  {
+    name: "Otter.ai",
+    tag: "اُت",
+    tone: "cyan",
+    use: "رونویسی و خلاصه جلسات به‌صورت خودکار",
+    level: "مبتدی",
+    locked: true,
+  },
+  {
+    name: "Julius AI",
+    tag: "جو",
+    tone: "gold",
+    use: "تحلیل داده و اکسل با زبان طبیعی",
+    level: "متوسط",
+    locked: true,
+  },
+  {
+    name: "Gamma",
+    tag: "گا",
+    tone: "violet",
+    use: "ساخت ارائه و اسلاید با AI",
+    level: "مبتدی",
     locked: true,
   },
 ];
@@ -180,15 +236,19 @@ export default function ToolsPage() {
             {hero.heroDesc}
           </p>
 
-          <button
-            className="h-9 px-5 rounded-xl text-[13px] font-bold"
+          <a
+            href="https://chat.openai.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center h-9 px-5 rounded-xl text-[13px] font-bold"
             style={{
               background: "linear-gradient(180deg, #fde68a, #eab308)",
               color: "#2a1d03",
+              textDecoration: "none",
             }}
           >
             شروع کن
-          </button>
+          </a>
         </div>
 
         {/* Tool list */}

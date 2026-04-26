@@ -20,9 +20,20 @@ async function getPayload(req: NextRequest) {
   }
 }
 
-/** Re-issue a fresh 1-hour token (sliding session) */
-async function refreshToken(payload: { id: string; phone: string; plan: string }) {
-  return new SignJWT({ id: payload.id, phone: payload.phone, plan: payload.plan })
+/** Re-issue a fresh 1-hour token, fetching current plan from DB */
+async function refreshToken(payload: { id: string; phone: string; plan: string }, origin: string) {
+  let plan = payload.plan;
+  try {
+    const res = await fetch(
+      `${origin}/api/auth/internal/plan?id=${payload.id}`,
+      { headers: { "x-internal-secret": process.env.INTERNAL_SECRET ?? "" } }
+    );
+    if (res.ok) {
+      const data = await res.json() as { plan: string };
+      plan = data.plan;
+    }
+  } catch { /* keep existing plan on failure */ }
+  return new SignJWT({ id: payload.id, phone: payload.phone, plan })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("1h")
     .sign(SECRET);
@@ -60,13 +71,13 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 
-  // ── 4. Sliding session: refresh if token is >30 min old ───────────
+  // ── 4. Sliding session: refresh every 2 min to pick up plan changes ─
   const issuedAt = (payload.iat ?? 0) * 1000;
   const ageMs = Date.now() - issuedAt;
-  const THIRTY_MIN = 30 * 60 * 1000;
+  const TWO_MIN = 2 * 60 * 1000;
 
-  if (ageMs > THIRTY_MIN) {
-    const newToken = await refreshToken(payload);
+  if (ageMs > TWO_MIN) {
+    const newToken = await refreshToken(payload, req.nextUrl.origin);
     const res = NextResponse.next();
     res.cookies.set(COOKIE, newToken, SESSION_COOKIE_OPTIONS);
     return res;

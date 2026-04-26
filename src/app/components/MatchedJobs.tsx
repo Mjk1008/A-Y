@@ -25,7 +25,16 @@ const SOURCES: Record<string, { label: string }> = {
 
 const FILTERS = ["بالاترین تطابق", "دورکاری", "ارشد", "تهران"];
 
-export default function MatchedJobs({ limit = 3 }: { limit?: number }) {
+function calcMatchPct(jobSkills: string[], userSkills: string[]): number | null {
+  if (!jobSkills.length || !userSkills.length) return null;
+  const norm = (s: string) => s.toLowerCase().trim();
+  const jSet = jobSkills.map(norm);
+  const uSet = userSkills.map(norm);
+  const matched = jSet.filter((js) => uSet.some((us) => us.includes(js) || js.includes(us))).length;
+  return Math.min(99, Math.round((matched / jSet.length) * 100));
+}
+
+export default function MatchedJobs({ limit = 3, userSkills = [] }: { limit?: number; userSkills?: string[] }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -131,7 +140,7 @@ export default function MatchedJobs({ limit = 3 }: { limit?: number }) {
       ) : jobs.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {jobs.map((job, idx) => (
-            <JobCard key={job.id} job={job} rank={idx} />
+            <JobCard key={job.id} job={job} rank={idx} userSkills={userSkills} />
           ))}
         </div>
       ) : (
@@ -181,12 +190,11 @@ function MatchGauge({ pct, size = 44 }: { pct: number; size?: number }) {
   );
 }
 
-function JobCard({ job, rank }: { job: Job; rank: number }) {
+function JobCard({ job, rank, userSkills }: { job: Job; rank: number; userSkills: string[] }) {
   const [saved, setSaved] = useState(false);
   const src = SOURCES[job.source] ?? { label: job.source };
   const timeAgo = job.posted_at ? new Date(job.posted_at).toLocaleDateString("fa-IR") : "";
-  // Pseudo-match: decreases with rank, starts around 88-92%
-  const matchPct = Math.max(50, 92 - rank * 8);
+  const matchPct = calcMatchPct(job.skills ?? [], userSkills);
 
   return (
     <article style={{
@@ -221,8 +229,8 @@ function JobCard({ job, rank }: { job: Job; rank: number }) {
           </div>
         </div>
 
-        {/* Match gauge */}
-        <MatchGauge pct={matchPct} />
+        {/* Match gauge — only shown when real data available */}
+        {matchPct !== null && <MatchGauge pct={matchPct} />}
       </div>
 
       {/* Meta row */}
