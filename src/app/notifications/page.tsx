@@ -121,9 +121,11 @@ export default function NotificationsPage() {
       >
         <div className="mx-auto max-w-lg px-5 py-4 flex items-center gap-3">
           <Link
-            href="/profile"
-            className="w-9 h-9 rounded-xl grid place-items-center flex-shrink-0"
+            href="/dashboard"
+            aria-label="بازگشت"
+            className="rounded-xl grid place-items-center flex-shrink-0"
             style={{
+              width: 44, height: 44,
               background: "rgba(31,46,40,0.6)",
               border: "1px solid rgba(110,231,183,0.14)",
             }}

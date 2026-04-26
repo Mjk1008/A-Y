@@ -231,14 +231,17 @@ export default function SettingsClient({ user, prefs: initialPrefs }: Props) {
 
   return (
     <div className="min-h-screen pb-28" style={{ background: "#020306", color: "#e8efea" }}>
-      <BottomNav />
-      {/* Header */}
+      {/* Header first in DOM for screen reader order */}
       <div className="sticky top-0 z-30 border-b border-white/[0.06]"
         style={{ background: "rgba(2,3,6,0.85)", backdropFilter: "blur(14px)" }}>
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="rounded-lg p-1.5 text-ink-400 transition hover:text-ink-100">
-              <ArrowLeft className="h-5 w-5" />
+            <Link
+              href="/dashboard"
+              aria-label="بازگشت"
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-400 transition hover:text-ink-200"
+            >
+              <ArrowLeft className="h-4 w-4" />
             </Link>
             <h1 className="text-base font-bold">تنظیمات</h1>
           </div>
@@ -249,6 +252,8 @@ export default function SettingsClient({ user, prefs: initialPrefs }: Props) {
           )}
         </div>
       </div>
+
+      <BottomNav />
 
       <div className="mx-auto max-w-lg space-y-4 px-4 py-6">
         {/* Account info */}
@@ -321,14 +326,16 @@ export default function SettingsClient({ user, prefs: initialPrefs }: Props) {
         <Section title="دیگر">
           <NavRow icon={HelpCircle} label="راهنما و سوالات متداول" sub="جواب همه سوالا اینجاست" href="/help" />
           <NavRow icon={Download} label="دانلود داده‌هام" sub="خروجی JSON از همه اطلاعاتت" href="/api/account/export" />
-          <NavRow icon={LogOut} label="خروج از حساب" href="#" />
         </Section>
 
         {/* Logout */}
         <button
           onClick={handleLogout}
-          className="w-full rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-sm text-ink-400 transition hover:text-ink-200"
+          className="w-full flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-4 text-sm text-ink-400 transition hover:text-ink-200"
         >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5">
+            <LogOut className="h-4 w-4" />
+          </div>
           خروج از حساب
         </button>
 

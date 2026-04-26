@@ -357,7 +357,8 @@ export default function OnboardingPage() {
               >
                 {i + 1 < step ? <Check className="h-3 w-3" /> : i + 1}
               </span>
-              <span className="hidden sm:inline">{label}</span>
+              {/* Always visible on all screen sizes */}
+              <span className={`text-[11px] ${i + 1 === step ? "font-semibold" : ""}`}>{label}</span>
             </div>
           ))}
         </div>
@@ -389,6 +390,8 @@ export default function OnboardingPage() {
                   }
                   className="input-field"
                   placeholder="مثلاً علی رضایی"
+                  autoComplete="name"
+                  autoFocus
                 />
               </div>
 
@@ -406,6 +409,8 @@ export default function OnboardingPage() {
                     className="input-field"
                     placeholder="28"
                     dir="ltr"
+                    autoComplete="off"
+                    inputMode="numeric"
                   />
                 </div>
                 <div>
@@ -423,6 +428,8 @@ export default function OnboardingPage() {
                     className="input-field"
                     placeholder="5"
                     dir="ltr"
+                    autoComplete="off"
+                    inputMode="numeric"
                   />
                 </div>
               </div>
@@ -438,6 +445,7 @@ export default function OnboardingPage() {
                   }
                   className="input-field"
                   placeholder="مثلاً توسعه‌دهنده Frontend یا مدیر محصول"
+                  autoComplete="organization-title"
                 />
               </div>
 
@@ -451,6 +459,7 @@ export default function OnboardingPage() {
                     setForm({ ...form, industry: e.target.value })
                   }
                   className="input-field"
+                  autoComplete="off"
                 >
                   <option value="">انتخاب کن...</option>
                   {INDUSTRIES.map((ind) => (
@@ -494,6 +503,8 @@ export default function OnboardingPage() {
                     }}
                     className="input-field flex-1"
                     placeholder="مثلاً React، مدیریت تیم، SQL"
+                    autoFocus
+                    autoComplete="off"
                   />
                   <button
                     type="button"

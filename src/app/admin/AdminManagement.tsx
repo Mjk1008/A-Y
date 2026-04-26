@@ -243,7 +243,7 @@ export function AdminManagement() {
         </div>
 
         {/* User rows */}
-        <div style={{ maxHeight: 420, overflowY: "auto" }}>
+        <div className="scroll-touch" data-lenis-prevent style={{ maxHeight: 420, overflowY: "auto" }}>
           {loading && users.length === 0 && (
             <div style={{ padding: 24, textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
               در حال بارگذاری…

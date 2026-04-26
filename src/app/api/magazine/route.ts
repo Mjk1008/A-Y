@@ -13,22 +13,8 @@ const METIS_BASE = process.env.METIS_BASE_URL || "https://api.metisai.ir/openai/
 const METIS_KEY  = process.env.METIS_API_KEY  || "";
 const MODEL      = "gpt-4o-mini";
 
-/* ── Ensure table exists ─────────────────────────────────────────── */
-async function ensureTable() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS magazine_articles (
-      id SERIAL PRIMARY KEY,
-      date DATE UNIQUE,
-      title TEXT,
-      content_json JSONB,
-      generated_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `).catch(() => {});
-}
-
 /* ── GET: return article for a date ─────────────────────────────── */
 export async function GET(req: NextRequest) {
-  await ensureTable();
 
   const dateParam = req.nextUrl.searchParams.get("date");
   const targetDate = dateParam || new Date().toISOString().slice(0, 10);
@@ -53,17 +39,13 @@ export async function GET(req: NextRequest) {
 
 /* ── POST: generate today's article ─────────────────────────────── */
 export async function POST(req: NextRequest) {
-  // Simple secret check
+  // Fail-closed: CRAWL_SECRET or MAGAZINE_SECRET must be set
   const secret = process.env.CRAWL_SECRET || process.env.MAGAZINE_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization") ?? "";
-    const bodySecret = (await req.json().catch(() => ({}))).secret;
-    if (auth !== `Bearer ${secret}` && bodySecret !== secret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const auth = req.headers.get("authorization") ?? "";
+  const bodySecret = (await req.json().catch(() => ({}))).secret;
+  if (!secret || (auth !== `Bearer ${secret}` && bodySecret !== secret)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  await ensureTable();
 
   const today = new Date().toISOString().slice(0, 10);
 

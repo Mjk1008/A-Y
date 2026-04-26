@@ -81,8 +81,12 @@ function CheckoutContent() {
       <div className="sticky top-0 z-30 border-b border-white/[0.06]"
         style={{ background: "rgba(2,3,6,0.85)", backdropFilter: "blur(14px)" }}>
         <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
-          <Link href="/billing" className="rounded-lg p-1.5 text-ink-400 transition hover:text-ink-100">
-            <ArrowLeft className="h-5 w-5" />
+          <Link
+            href="/billing"
+            aria-label="بازگشت"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-400 transition hover:text-ink-200"
+          >
+            <ArrowLeft className="h-4 w-4" />
           </Link>
           <h1 className="text-base font-bold">انتخاب پلن</h1>
         </div>

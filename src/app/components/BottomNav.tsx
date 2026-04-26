@@ -22,9 +22,9 @@ export function BottomNav() {
     <nav
       className="fixed bottom-0 inset-x-0 z-50 border-t border-white/[0.06]"
       style={{
-        background: "rgba(2,3,6,0.92)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
+        background: "rgba(2,3,6,0.94)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
@@ -35,15 +35,27 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
-              className={`relative flex flex-1 flex-col items-center gap-1 px-2 py-3 transition-colors ${
-                active ? "text-emerald-400" : "text-ink-600 hover:text-ink-400"
+              className={`relative flex flex-1 flex-col items-center gap-1 px-2 py-3 transition-all duration-200 ${
+                active ? "text-emerald-400" : "text-ink-600 hover:text-ink-300"
               }`}
             >
-              <Icon className={`h-5 w-5 transition-transform ${active ? "scale-110" : ""}`} />
-              <span className="text-[10px] font-medium leading-none">{label}</span>
-              {active && (
-                <span className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-emerald-400" />
-              )}
+              {/* Top active indicator */}
+              <span
+                className={`absolute top-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full transition-all duration-300 ${
+                  active ? "w-8 bg-emerald-400" : "w-0 bg-transparent"
+                }`}
+                style={active ? { boxShadow: "0 0 8px rgba(52,211,153,0.7)" } : undefined}
+              />
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-200 ${
+                  active ? "bg-emerald-500/12" : ""
+                }`}
+              >
+                <Icon className={`h-[19px] w-[19px] transition-all duration-200 ${active ? "scale-110" : ""}`} />
+              </div>
+              <span className={`text-[10px] leading-none transition-all duration-200 ${active ? "font-semibold" : "font-medium"}`}>
+                {label}
+              </span>
             </Link>
           );
         })}

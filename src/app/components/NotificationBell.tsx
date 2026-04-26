@@ -160,6 +160,8 @@ export function NotificationBell() {
         <div
           ref={panelRef}
           dir="rtl"
+          className="scroll-touch"
+          data-lenis-prevent
           style={{
             position: "absolute",
             top: "calc(100% + 8px)",

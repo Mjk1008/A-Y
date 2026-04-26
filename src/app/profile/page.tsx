@@ -19,7 +19,10 @@ export default async function ProfilePage() {
   const profile = profileRes.rows[0];
 
   return (
-    <div className="min-h-[100dvh] pb-28 px-6 py-10">
+    <div
+      className="min-h-[100dvh] pb-28 px-6 py-10"
+      style={{ background: "#020306", color: "#e8efea" }}
+    >
       <BottomNav />
       <div className="mx-auto max-w-2xl">
         {/* Back */}

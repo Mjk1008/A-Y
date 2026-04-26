@@ -18,18 +18,23 @@ export async function POST(req: NextRequest) {
   let discountPct = 0;
 
   // Validate promo code if provided
+  // Wrapped in try/catch: promo_codes table may not exist yet
   if (promoCode) {
-    const promoRes = await query(
-      `SELECT * FROM promo_codes
-       WHERE code = $1 AND active = true
-         AND (expires_at IS NULL OR expires_at > NOW())
-         AND (max_uses IS NULL OR used_count < max_uses)
-         AND (plan_type IS NULL OR plan_type = $2)`,
-      [promoCode.toUpperCase(), planId]
-    );
-    if (promoRes.rows.length > 0) {
-      discountPct = promoRes.rows[0].discount_pct;
-      amountToman = Math.round(amountToman * (1 - discountPct / 100));
+    try {
+      const promoRes = await query(
+        `SELECT * FROM promo_codes
+         WHERE code = $1 AND active = true
+           AND (expires_at IS NULL OR expires_at > NOW())
+           AND (max_uses IS NULL OR used_count < max_uses)
+           AND (plan_type IS NULL OR plan_type = $2)`,
+        [promoCode.toUpperCase(), planId]
+      );
+      if (promoRes.rows.length > 0) {
+        discountPct = promoRes.rows[0].discount_pct;
+        amountToman = Math.round(amountToman * (1 - discountPct / 100));
+      }
+    } catch {
+      // promo_codes table not yet created — treat code as invalid (no discount)
     }
   }
 
@@ -38,7 +43,11 @@ export async function POST(req: NextRequest) {
     // Pro doesn't have yearly, skip — only max has yearly
   }
 
-  const callbackUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/billing/verify`;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  if (!baseUrl) {
+    return NextResponse.json({ error: "NEXT_PUBLIC_BASE_URL not configured" }, { status: 500 });
+  }
+  const callbackUrl = `${baseUrl}/api/billing/verify`;
 
   try {
     const { authority, gatewayUrl } = await zarinpalRequest({

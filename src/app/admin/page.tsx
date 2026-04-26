@@ -101,16 +101,23 @@ export default async function AdminPage() {
 
   return (
     <div dir="rtl" style={{ minHeight: "100svh", background: "#020306", color: "#e8efea", paddingBottom: 96 }}>
-      <BottomNav />
-
-      {/* ── Header ───────────────────────────────────────────── */}
+      {/* Header first in DOM for screen reader order */}
       <header style={{
         position: "sticky", top: 0, zIndex: 30,
         background: "rgba(2,3,6,0.90)", backdropFilter: "blur(16px)",
         borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}>
         <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", alignItems: "center", gap: 10, padding: "12px 16px" }}>
-          <Link href="/dashboard" style={{ display: "flex", alignItems: "center", color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>
+          <Link
+            href="/dashboard"
+            aria-label="بازگشت به داشبورد"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+              color: "rgba(255,255,255,0.4)", textDecoration: "none",
+              background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
             <ArrowLeft size={18} />
           </Link>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
@@ -127,6 +134,8 @@ export default async function AdminPage() {
           </div>
         </div>
       </header>
+
+      <BottomNav />
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
 

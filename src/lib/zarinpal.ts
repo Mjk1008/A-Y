@@ -1,7 +1,14 @@
 // Zarinpal payment gateway integration
 // Docs: https://docs.zarinpal.com/paymentGateway/
 
-const MERCHANT_ID = process.env.ZARINPAL_MERCHANT_ID || "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX";
+const _merchantId = process.env.ZARINPAL_MERCHANT_ID;
+if (!_merchantId || _merchantId.startsWith("XXXXXXXX")) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("FATAL: ZARINPAL_MERCHANT_ID must be set in production");
+  }
+  console.warn("⚠️  ZARINPAL_MERCHANT_ID not set — payment gateway calls will fail");
+}
+const MERCHANT_ID = _merchantId || "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX";
 const SANDBOX = process.env.NODE_ENV !== "production";
 
 const BASE_URL = SANDBOX

@@ -315,7 +315,7 @@ export function FlappyGame({ onGameOver }: { onGameOver?: (score: number) => voi
         style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(96,165,250,0.18)", boxShadow: "0 0 24px rgba(96,165,250,0.07)", cursor: "pointer" }}
         onClick={flap}
       >
-        <canvas ref={canvasRef} width={CW} height={CH} style={{ display: "block", touchAction: "none", maxWidth: "100%" }} />
+        <canvas ref={canvasRef} width={CW} height={CH} style={{ display: "block", touchAction: "none", maxWidth: "100%", height: "auto" }} />
 
         {/* Idle overlay */}
         {phase === "idle" && (

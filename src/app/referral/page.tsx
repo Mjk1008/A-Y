@@ -70,11 +70,11 @@ export default function ReferralPage() {
         borderBottom: "1px solid rgba(139,92,246,0.12)",
       }}>
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/dashboard" style={{
-            width: 36, height: 36, borderRadius: 10, display: "grid", placeItems: "center",
+          <Link href="/dashboard" aria-label="بازگشت" style={{
+            width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", flexShrink: 0,
             background: "rgba(31,20,51,0.6)", border: "1px solid rgba(139,92,246,0.18)",
           }}>
-            <ArrowRight size={15} color="#e8efea" />
+            <ArrowRight size={16} color="#e8efea" />
           </Link>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 14 }}>دعوت دوستان</div>

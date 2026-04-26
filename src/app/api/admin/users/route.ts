@@ -53,6 +53,10 @@ export async function PATCH(req: NextRequest) {
     let idx = 1;
 
     if (plan !== undefined) {
+      // W10: validate plan enum before writing to DB
+      if (!["free", "pro", "max"].includes(plan)) {
+        return NextResponse.json({ error: "پلن نامعتبر — باید free، pro یا max باشد" }, { status: 400 });
+      }
       updates.push(`plan_type = $${idx++}`);
       values.push(plan);
     }

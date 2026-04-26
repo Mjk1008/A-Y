@@ -7,10 +7,11 @@ import { SnakeGame } from "./Snake";
 import { TwentyFortyEightGame } from "./TwentyFortyEight";
 import { FlappyGame } from "./Flappy";
 import { MemoryGame } from "./Memory";
+import { BikeGame } from "./Bike";
 import { BottomNav } from "@/app/components/BottomNav";
 import { MascotArt } from "@/app/components/PixelMascot";
 
-type GameId = "snake" | "2048" | "flappy" | "memory";
+type GameId = "snake" | "2048" | "flappy" | "memory" | "bike";
 type View = "hub" | "intro" | "playing" | "result" | "leaderboard";
 
 interface GameConfig {
@@ -25,6 +26,20 @@ interface GameConfig {
   howTo: string[];
   difficulty: 1 | 2 | 3;
 }
+
+// Bike game is exclusive — conditionally added after features fetch
+const BIKE_GAME: GameConfig = {
+  id: "bike",
+  label: "دوچرخه",
+  emoji: "🚲",
+  tag: "ویژه",
+  tagline: "از سنگ‌ها رد شو، گل‌ها جمع کن.",
+  playtime: "نامحدود",
+  accent: "#34d399",
+  storageKey: "bike-best",
+  howTo: ["tap / space / ↑ برای پرش", "از سنگ‌های سر راهت رد شو", "گل‌های رنگارنگ جمع کن (+۲ امتیاز هر کدوم)"],
+  difficulty: 2,
+};
 
 const GAMES: GameConfig[] = [
   {
@@ -87,9 +102,10 @@ function setBest(key: string, v: number) {
 
 // ─────────────────────────── GameComponent ───────────────────────────
 function GameComponent({ id, onGameOver }: { id: GameId; onGameOver: (score: number) => void }) {
-  if (id === "snake") return <SnakeGame onGameOver={onGameOver} />;
-  if (id === "2048") return <TwentyFortyEightGame onGameOver={onGameOver} />;
+  if (id === "snake")  return <SnakeGame onGameOver={onGameOver} />;
+  if (id === "2048")   return <TwentyFortyEightGame onGameOver={onGameOver} />;
   if (id === "flappy") return <FlappyGame onGameOver={onGameOver} />;
+  if (id === "bike")   return <BikeGame onGameOver={onGameOver} />;
   return <MemoryGame onGameOver={onGameOver} />;
 }
 
@@ -279,16 +295,141 @@ function GameIntro({ game, onStart, onBack }: { game: GameConfig; onStart: () =>
   );
 }
 
+// ─────────────────────────── RewardOverlay ───────────────────────────
+function RewardOverlay({ rewardData, accent, onDismiss }: {
+  rewardData: RewardData;
+  accent: string;
+  onDismiss: () => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    // slight delay so the overlay animates in after result screen mounts
+    const t = setTimeout(() => setVisible(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div
+      onClick={onDismiss}
+      style={{
+        position: "fixed", inset: 0, zIndex: 100,
+        background: "rgba(2,3,6,0.82)",
+        backdropFilter: "blur(10px)",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        padding: "24px",
+        opacity: visible ? 1 : 0,
+        transition: "opacity 0.3s ease",
+      }}
+    >
+      {/* confetti dots */}
+      {["🎊","✨","🎉","⭐","💫","🎁","✨","🌟"].map((s, i) => (
+        <div key={i} style={{
+          position: "absolute",
+          left: `${10 + (i * 11) % 80}%`,
+          top: `${8 + (i * 13) % 40}%`,
+          fontSize: 18 + (i % 3) * 6,
+          opacity: 0.7,
+          animation: `ay-float-${i % 3} ${2 + i * 0.3}s ease-in-out ${i * 0.15}s infinite`,
+          pointerEvents: "none",
+        }}>{s}</div>
+      ))}
+
+      <style>{`
+        @keyframes ay-float-0{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-12px) rotate(5deg)}}
+        @keyframes ay-float-1{0%,100%{transform:translateY(0) rotate(3deg)}50%{transform:translateY(-8px) rotate(-3deg)}}
+        @keyframes ay-float-2{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-16px) rotate(8deg)}}
+        @keyframes ay-reward-pop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+      `}</style>
+
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: "relative", zIndex: 2,
+          background: "linear-gradient(160deg, rgba(42,28,2,0.97), rgba(20,13,1,0.97))",
+          border: "1.5px solid rgba(250,204,21,0.5)",
+          borderRadius: 28,
+          padding: "36px 28px 28px",
+          maxWidth: 320, width: "100%",
+          textAlign: "center",
+          boxShadow: "0 0 80px rgba(250,204,21,0.25), 0 24px 60px rgba(0,0,0,0.6)",
+          animation: "ay-reward-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both",
+        }}
+      >
+        {/* Big reward emoji */}
+        <div style={{ fontSize: 64, lineHeight: 1, marginBottom: 16, filter: "drop-shadow(0 0 24px rgba(250,204,21,0.8))" }}>
+          🎁
+        </div>
+
+        {/* Title */}
+        <div style={{ fontWeight: 900, fontSize: 22, color: "#fde68a", marginBottom: 8 }}>
+          جایزه گرفتی!
+        </div>
+
+        {/* Reward text */}
+        <div style={{
+          fontSize: 18, fontWeight: 800, color: "#e8efea",
+          marginBottom: 6,
+          background: "rgba(250,204,21,0.1)", border: "1px solid rgba(250,204,21,0.25)",
+          borderRadius: 14, padding: "10px 16px",
+          display: "inline-block",
+        }}>
+          {rewardData.reward}
+        </div>
+
+        <div style={{ fontSize: 12, color: "rgba(253,230,138,0.55)", marginTop: 10, lineHeight: 1.5 }}>
+          این جایزه به حساب استفاده‌ات اضافه شد
+        </div>
+
+        {/* Dismiss button */}
+        <button
+          onClick={onDismiss}
+          style={{
+            marginTop: 20, width: "100%", height: 48, borderRadius: 14,
+            border: "none", cursor: "pointer",
+            background: "linear-gradient(135deg, #fde68a, #eab308)",
+            color: "#2a1d03", fontWeight: 900, fontSize: 15,
+            fontFamily: "'Vazirmatn', sans-serif",
+          }}
+        >
+          خیلی ممنون! 🙌
+        </button>
+      </div>
+
+      {/* tap-outside hint */}
+      <div style={{ marginTop: 16, fontSize: 11, color: "rgba(232,239,234,0.25)", position: "relative", zIndex: 2 }}>
+        ضربه بزن تا ببندی
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────── GameResult ───────────────────────────
+const REWARD_THRESHOLDS_LABEL: Record<string, number> = {
+  snake: 10, "2048": 512, flappy: 5, memory: 1, bike: 15,
+};
+
 function GameResult({
-  game, score, isNewRecord, rewardData, onPlayAgain, onLeaderboard, onHub,
+  game, score, isNewRecord, rewardData, rewardLoading, onPlayAgain, onLeaderboard, onHub,
 }: {
   game: GameConfig; score: number; isNewRecord: boolean;
   rewardData: RewardData | null;
+  rewardLoading: boolean;
   onPlayAgain: () => void; onLeaderboard: () => void; onHub: () => void;
 }) {
   const { accent, emoji, label } = game;
   const isWin = score > 0;
+  const [showOverlay, setShowOverlay] = useState(false);
+
+  // Show overlay as soon as we know reward was earned
+  useEffect(() => {
+    if (rewardData?.earned) {
+      setShowOverlay(true);
+    }
+  }, [rewardData?.earned]);
+
+  const threshold = REWARD_THRESHOLDS_LABEL[game.id] ?? 0;
+  const gapToReward = Math.max(0, threshold - score);
 
   return (
     <div
@@ -302,6 +443,15 @@ function GameResult({
         fontFamily: "'Vazirmatn', sans-serif",
       }}
     >
+      {/* Reward overlay — appears on top when earned */}
+      {showOverlay && rewardData?.earned && (
+        <RewardOverlay
+          rewardData={rewardData}
+          accent={accent}
+          onDismiss={() => setShowOverlay(false)}
+        />
+      )}
+
       {/* Header */}
       <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "rgba(2,3,6,0.88)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <button onClick={onHub} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "rgba(255,255,255,0.5)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
@@ -354,30 +504,57 @@ function GameResult({
           </div>
         </div>
 
-        {/* Reward banner */}
-        {rewardData?.earned && (
+        {/* Reward status strip */}
+        {rewardLoading && (
           <div style={{
-            width: "100%", maxWidth: 300,
-            padding: "14px 16px", borderRadius: 16,
-            background: "linear-gradient(135deg, rgba(250,204,21,0.12), rgba(234,179,8,0.08))",
-            border: "1px solid rgba(250,204,21,0.3)",
-            textAlign: "center",
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 16px", borderRadius: 12,
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
+            fontSize: 12, color: "rgba(232,239,234,0.4)",
           }}>
-            <div style={{ fontSize: 24, marginBottom: 6 }}>🎁</div>
-            <div style={{ fontWeight: 800, fontSize: 14, color: "#fde68a" }}>جایزه گرفتی!</div>
-            <div style={{ fontSize: 12, color: "rgba(253,230,138,0.7)", marginTop: 4 }}>
-              {rewardData.reward}
-            </div>
+            <div style={{
+              width: 12, height: 12, borderRadius: "50%",
+              border: "2px solid rgba(232,239,234,0.2)",
+              borderTopColor: accent,
+              animation: "spin 0.8s linear infinite",
+            }} />
+            <span>بررسی جایزه...</span>
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           </div>
         )}
-        {rewardData?.alreadyClaimed && (
+
+        {!rewardLoading && rewardData && !rewardData.earned && !rewardData.alreadyClaimed && gapToReward > 0 && (
           <div style={{
-            width: "100%", maxWidth: 300,
-            padding: "10px 14px", borderRadius: 14,
-            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-            textAlign: "center", fontSize: 11.5, color: "rgba(232,239,234,0.4)",
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 16px", borderRadius: 12,
+            background: `${accent}08`, border: `1px solid ${accent}20`,
+            fontSize: 12, color: `${accent}99`,
+          }}>
+            <span>🎯</span>
+            <span>{gapToReward} امتیاز تا جایزه بعدی</span>
+          </div>
+        )}
+
+        {!rewardLoading && rewardData?.alreadyClaimed && (
+          <div style={{
+            padding: "10px 16px", borderRadius: 12,
+            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+            fontSize: 11.5, color: "rgba(232,239,234,0.38)", textAlign: "center",
           }}>
             {rewardData.message}
+          </div>
+        )}
+
+        {/* earned — small inline badge (overlay already shown) */}
+        {!rewardLoading && rewardData?.earned && !showOverlay && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 16px", borderRadius: 12,
+            background: "rgba(250,204,21,0.1)", border: "1px solid rgba(250,204,21,0.3)",
+            fontSize: 12, color: "#fde68a", cursor: "pointer",
+          }} onClick={() => setShowOverlay(true)}>
+            <span>🎁</span>
+            <span>{rewardData.reward} — جایزه‌ات رو ببین!</span>
           </div>
         )}
 
@@ -426,6 +603,13 @@ function GameResult({
 
 // ─────────────────────────── GameLeaderboard ───────────────────────────
 const MOCK_LEADERBOARD: Record<GameId, { name: string; score: number; flag: string }[]> = {
+  bike: [
+    { name: "ali_rider", score: 248, flag: "🇮🇷" },
+    { name: "sara_m",    score: 191, flag: "🇮🇷" },
+    { name: "kia_bike",  score: 162, flag: "🇮🇷" },
+    { name: "nima99",    score: 134, flag: "🇮🇷" },
+    { name: "tara_f",    score: 98,  flag: "🇮🇷" },
+  ],
   snake: [
     { name: "علی_م", score: 312, flag: "🇮🇷" },
     { name: "sara99", score: 287, flag: "🇮🇷" },
@@ -639,19 +823,32 @@ export default function GamesPage() {
   const [isNewRecord, setIsNewRecord] = useState(false);
   const [playKey, setPlayKey] = useState(0); // force remount to restart game
   const [rewardData, setRewardData] = useState<RewardData | null>(null);
+  const [rewardLoading, setRewardLoading] = useState(false);
+  const [hasBikeGame, setHasBikeGame] = useState(false);
 
-  const activeConfig = GAMES.find((g) => g.id === activeGame)!;
+  // Fetch user-specific features (bike game is exclusive to one user)
+  useEffect(() => {
+    fetch("/api/user/features")
+      .then(r => r.json())
+      .then(d => setHasBikeGame(d.features?.bikeGame === true))
+      .catch(() => {});
+  }, []);
+
+  const allGames = hasBikeGame ? [...GAMES, BIKE_GAME] : GAMES;
+  const activeConfig = allGames.find((g) => g.id === activeGame) ?? GAMES[0];
 
   function goToIntro(id: GameId) {
     setActiveGame(id);
     setView("intro");
     setRewardData(null);
+    setRewardLoading(false);
   }
 
   function startGame() {
     setPlayKey((k) => k + 1);
     setView("playing");
     setRewardData(null);
+    setRewardLoading(false);
   }
 
   const handleGameOver = useCallback(async (score: number) => {
@@ -660,9 +857,11 @@ export default function GamesPage() {
     if (newRecord) setBest(activeConfig.storageKey, score);
     setLastScore(score);
     setIsNewRecord(newRecord);
+    setRewardLoading(true);
+    setRewardData(null);
     setView("result");
 
-    // Try to claim reward (non-blocking)
+    // Try to claim reward
     try {
       const res = await fetch("/api/games/reward", {
         method: "POST",
@@ -675,6 +874,8 @@ export default function GamesPage() {
       }
     } catch {
       // ignore — reward is a bonus, not critical
+    } finally {
+      setRewardLoading(false);
     }
   }, [activeConfig.storageKey, activeConfig.id]);
 
@@ -706,9 +907,9 @@ export default function GamesPage() {
               <p style={{ fontSize: 12, opacity: 0.55, margin: "5px 0 0", lineHeight: 1.6 }}>چهار بازی کوتاه برای خستگی‌های کوچیک.</p>
             </div>
           </div>
-          <StatsStrip stats={[{ label: "کل بازی‌ها", value: "۴۳۵" }, { label: "بهترین سری", value: "۷" }, { label: "این هفته", value: "۱۸" }]} />
+          <StatsStrip stats={[{ label: "کل بازی‌ها", value: "۴۳۵" }, { label: "تعداد بازی‌ها", value: hasBikeGame ? "۵" : "۴" }, { label: "این هفته", value: "۱۸" }]} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 20 }}>
-            {GAMES.map((game) => (
+            {allGames.map((game) => (
               <GameCard key={game.id} game={game} onPlay={() => goToIntro(game.id)} />
             ))}
           </div>
@@ -727,8 +928,8 @@ export default function GamesPage() {
   // ── Playing ──
   if (view === "playing") {
     return (
-      <div dir="rtl" style={{ minHeight: "100svh", background: "#020306", color: "#e8efea", display: "flex", flexDirection: "column", paddingBottom: 96, fontFamily: "'Vazirmatn', sans-serif" }}>
-        <header style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(2,3,6,0.88)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+      <div dir="rtl" style={{ height: "100dvh", background: "#020306", color: "#e8efea", display: "flex", flexDirection: "column", fontFamily: "'Vazirmatn', sans-serif" }}>
+        <header style={{ flexShrink: 0, zIndex: 30, background: "rgba(2,3,6,0.88)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px" }}>
             <button onClick={() => setView("intro")} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "rgba(255,255,255,0.5)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
               <ArrowRight size={16} />
@@ -742,8 +943,8 @@ export default function GamesPage() {
           </div>
 
           {/* Tab row */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px 12px", overflowX: "auto", scrollbarWidth: "none" }}>
-            {GAMES.map((game) => {
+          <div className="h-scroll-free" style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px 10px" }}>
+            {allGames.map((game) => {
               const isActive = game.id === activeGame;
               return (
                 <button
@@ -765,7 +966,12 @@ export default function GamesPage() {
           </div>
         </header>
 
-        <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "16px" }}>
+        {/* Game area — scrollable if game taller than remaining space */}
+        <main
+          className="scroll-touch"
+          data-lenis-prevent
+          style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 16px", paddingBottom: "calc(80px + env(safe-area-inset-bottom))" }}
+        >
           <GameComponent key={playKey} id={activeGame} onGameOver={handleGameOver} />
         </main>
 
@@ -782,6 +988,7 @@ export default function GamesPage() {
         score={lastScore}
         isNewRecord={isNewRecord}
         rewardData={rewardData}
+        rewardLoading={rewardLoading}
         onPlayAgain={startGame}
         onLeaderboard={() => setView("leaderboard")}
         onHub={() => setView("hub")}

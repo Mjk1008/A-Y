@@ -46,13 +46,11 @@ export async function GET() {
 
 /* ── POST — trigger crawl ─────────────────────────────────────────── */
 export async function POST(req: NextRequest) {
-  /* Auth check */
+  /* Auth check — fail-closed: CRAWL_SECRET must be set */
   const secret = process.env.CRAWL_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const auth = req.headers.get("authorization") ?? "";
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body    = await req.json().catch(() => ({}));

@@ -19,10 +19,7 @@ export async function POST(req: NextRequest) {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-    // Ensure nickname column exists (safe, idempotent)
-    await pool.query(
-      `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nickname TEXT`
-    ).catch(() => {}); // ignore if already exists or no ALTER permission
+    // Note: ALTER TABLE removed — schema migrations belong in db-migrate.ts
 
     const body = await req.json();
     const {
@@ -70,12 +67,26 @@ export async function POST(req: NextRequest) {
       await pool.query("UPDATE users SET full_name=$1 WHERE id=$2", [full_name, session.id]);
     }
 
-    // If resume parsed text provided, store it
+    // If resume parsed text provided, replace previous text-only resumes and insert new one
     if (resume_parsed_text) {
+      // Clean up old text-only resume entries (W13)
       await pool.query(
-        "INSERT INTO resumes (user_id, parsed_text) VALUES ($1, $2)",
+        `DELETE FROM resumes WHERE user_id=$1 AND file_path='text-paste'`,
+        [session.id]
+      ).catch(() => {}); // ignore if column doesn't exist
+
+      // Insert with placeholder values for file_path/file_name (C6 fix)
+      await pool.query(
+        `INSERT INTO resumes (user_id, parsed_text, file_path, file_name)
+         VALUES ($1, $2, 'text-paste', 'manual-entry')`,
         [session.id, resume_parsed_text]
-      );
+      ).catch(async () => {
+        // Fallback: try without file columns (schema may vary on Liara)
+        await pool.query(
+          "INSERT INTO resumes (user_id, parsed_text) VALUES ($1, $2)",
+          [session.id, resume_parsed_text]
+        ).catch(() => {});
+      });
     }
 
     return NextResponse.json({ success: true });

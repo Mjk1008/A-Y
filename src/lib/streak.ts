@@ -13,19 +13,7 @@
 
 import { pool } from "@/lib/db";
 
-/* Ensure table exists — idempotent, fast on subsequent calls */
-async function ensureStreakTable() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS user_streaks (
-      user_id           UUID PRIMARY KEY,
-      current_streak    INT DEFAULT 0,
-      best_streak       INT DEFAULT 0,
-      last_activity_date DATE,
-      total_days_active INT DEFAULT 0,
-      updated_at        TIMESTAMPTZ DEFAULT NOW()
-    )
-  `).catch(() => {});
-}
+// W8: table creation removed — user_streaks is managed in lib/crawlers/db-migrate.ts
 
 export interface StreakData {
   currentStreak: number;
@@ -34,16 +22,27 @@ export interface StreakData {
   totalDaysActive: number;
 }
 
+/** Returns "YYYY-MM-DD" in UTC — safe regardless of server timezone */
+function utcDateStr(d: Date = new Date()): string {
+  return d.toISOString().slice(0, 10);
+}
+function utcYesterdayStr(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+/** Parse a DATE value from pg (may come back as Date object or string) → "YYYY-MM-DD" UTC */
+function pgDateToStr(v: unknown): string | null {
+  if (!v) return null;
+  if (typeof v === "string") return v.slice(0, 10);
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  return null;
+}
+
 export async function updateStreak(userId: string): Promise<StreakData> {
   try {
-    await ensureStreakTable();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().slice(0, 10); // "YYYY-MM-DD"
-
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+    const todayStr = utcDateStr();
+    const yesterdayStr = utcYesterdayStr();
 
     // Get current streak data
     const res = await pool.query(
@@ -65,9 +64,7 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     }
 
     const row = res.rows[0];
-    const lastDate: string | null = row.last_activity_date
-      ? new Date(row.last_activity_date).toISOString().slice(0, 10)
-      : null;
+    const lastDate: string | null = pgDateToStr(row.last_activity_date);
 
     // Already counted today — just return current data
     if (lastDate === todayStr) {
@@ -112,7 +109,6 @@ export async function updateStreak(userId: string): Promise<StreakData> {
 
 export async function getStreak(userId: string): Promise<StreakData> {
   try {
-    await ensureStreakTable();
     const res = await pool.query(
       `SELECT current_streak, best_streak, last_activity_date, total_days_active
        FROM user_streaks WHERE user_id = $1`,
@@ -122,12 +118,19 @@ export async function getStreak(userId: string): Promise<StreakData> {
       return { currentStreak: 0, bestStreak: 0, lastActivityDate: null, totalDaysActive: 0 };
     }
     const row = res.rows[0];
+    const lastDate = pgDateToStr(row.last_activity_date);
+    const todayStr = utcDateStr();
+    const yesterdayStr = utcYesterdayStr();
+
+    // If last activity was before yesterday, streak has decayed — show 0 for display
+    // (the DB is updated to 1 the next time the user actually does something)
+    const isActive = lastDate === todayStr || lastDate === yesterdayStr;
+    const currentStreak = isActive ? row.current_streak : 0;
+
     return {
-      currentStreak: row.current_streak,
+      currentStreak,
       bestStreak: row.best_streak,
-      lastActivityDate: row.last_activity_date
-        ? new Date(row.last_activity_date).toISOString().slice(0, 10)
-        : null,
+      lastActivityDate: lastDate,
       totalDaysActive: row.total_days_active,
     };
   } catch (e) {

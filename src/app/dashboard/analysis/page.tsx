@@ -47,9 +47,7 @@ export default async function AnalysisPage() {
 
   return (
     <div className="min-h-[100dvh] pb-28" style={{ background: "#020306", color: "#e8efea" }}>
-      <BottomNav />
-
-      {/* Header */}
+      {/* Header first in DOM for screen readers */}
       <header
         className="sticky top-0 z-40 border-b border-white/[0.06]"
         style={{
@@ -87,6 +85,7 @@ export default async function AnalysisPage() {
         </div>
       </header>
 
+      <BottomNav />
       <main className="mx-auto max-w-md px-5 pt-6">
         {/* ── Summary ── */}
         <section className="mb-5 rounded-2xl border border-white/[0.06] bg-white/[0.025] p-5">

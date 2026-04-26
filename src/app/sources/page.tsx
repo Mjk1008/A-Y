@@ -166,11 +166,11 @@ export default function SourcesPage() {
         borderBottom: "1px solid rgba(6,182,212,0.10)",
       }}>
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/dashboard" style={{
-            width: 36, height: 36, borderRadius: 10, display: "grid", placeItems: "center",
+          <Link href="/dashboard" aria-label="بازگشت" style={{
+            width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", flexShrink: 0,
             background: "rgba(6,30,37,0.6)", border: "1px solid rgba(6,182,212,0.18)",
           }}>
-            <ArrowRight size={15} color="#e8efea" />
+            <ArrowRight size={16} color="#e8efea" />
           </Link>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 14 }}>منابع یادگیری AI</div>
@@ -185,7 +185,7 @@ export default function SourcesPage() {
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "16px" }}>
 
         {/* Type filter tabs */}
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 10, scrollbarWidth: "none" }}>
+        <div className="h-scroll-free" style={{ display: "flex", gap: 6, paddingBottom: 4, marginBottom: 10 }}>
           {TYPE_TABS.map((tab) => (
             <button
               key={tab.key}

@@ -113,4 +113,10 @@ export async function migrateCrawlTables(): Promise<void> {
       generated_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+
+  // W12: composite index for usage_logs quota queries (user_id + type + created_at)
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_usage_logs_user_type_date
+    ON usage_logs (user_id, type, created_at)
+  `).catch(() => {}); // ignore if usage_logs doesn't exist yet
 }

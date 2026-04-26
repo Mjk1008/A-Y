@@ -2,9 +2,14 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "change-me-in-production"
-);
+const _jwtSecret = process.env.JWT_SECRET;
+if (!_jwtSecret) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("FATAL: JWT_SECRET environment variable must be set in production");
+  }
+  console.warn("⚠️  JWT_SECRET not set — using insecure default (development only)");
+}
+const SECRET = new TextEncoder().encode(_jwtSecret || "change-me-in-production");
 
 export type SessionUser = { id: string; phone: string; plan: string };
 

@@ -84,6 +84,9 @@ function PhoneStep({
             maxLength={10}
             dir="ltr"
             required
+            autoFocus
+            autoComplete="tel-national"
+            inputMode="numeric"
             style={{
               flex: 1, background: "none", border: "none", outline: "none",
               fontWeight: 700, fontSize: 19, color: "#e8efea", letterSpacing: 0.4,

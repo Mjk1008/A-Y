@@ -14,7 +14,7 @@ export type ProfileInput = {
   skills: string[];
   bio?: string;
   resume_text?: string;
-  plan: "free" | "pro";
+  plan: "free" | "pro" | "max";
 };
 
 export type AnalysisResult = {
@@ -142,7 +142,8 @@ function mockAnalysis(p: ProfileInput): AnalysisResult {
 }
 
 async function callMetis(p: ProfileInput): Promise<AnalysisResult> {
-  const maxTokens = p.plan === "pro" ? 4096 : 2048;
+  // W1: include "max" plan — previously fell through to free tier (2048)
+  const maxTokens = p.plan === "max" ? 8000 : p.plan === "pro" ? 4096 : 2048;
 
   const res = await fetch(`${METIS_BASE}/chat/completions`, {
     method: "POST",

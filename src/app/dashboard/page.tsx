@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   User,
   Settings,
-  CreditCard,
   ChevronLeft,
   Crown,
   Zap,
@@ -374,19 +373,19 @@ export default async function DashboardPage() {
           />
 
           <FeatureCard
-            href="/dashboard/analysis#tools"
+            href="/tools"
             title="ابزارهای AI"
             desc={
               r
                 ? `${r.top_tools.length.toLocaleString("fa-IR")} ابزار پیشنهادی`
-                : "بعد از اولین تحلیل"
+                : "کشف بهترین ابزارها"
             }
             iconBg="bg-pink-500/20"
             icon={<Wrench className="h-5 w-5 text-pink-400" />}
             gradientFrom="from-pink-500/20"
             borderColor="border-pink-500/20"
             cta="مشاهده"
-            active={!!r}
+            active={true}
           />
         </div>
 
@@ -606,35 +605,32 @@ function DashboardHeader({
         </Link>
 
         <div className="flex items-center gap-2">
-          <span
-            className={`rounded-full border px-2.5 py-0.5 text-[10.5px] font-semibold ${planColor}`}
+          {/* Plan badge */}
+          <Link
+            href="/billing"
+            className={`rounded-full border px-2.5 py-0.5 text-[10.5px] font-semibold transition hover:opacity-80 ${planColor}`}
+            title="مدیریت اشتراک"
           >
             {isMax && <Crown className="mr-1 inline h-3 w-3" />}
             {isPro && !isMax && <Zap className="mr-1 inline h-3 w-3" />}
             {planLabel}
-          </span>
+          </Link>
 
           <NotificationBell />
 
-          <Link
-            href="/billing"
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:text-ink-200"
-            title="اشتراک"
-          >
-            <CreditCard className="h-3.5 w-3.5" />
-          </Link>
-
+          {/* Settings (billing accessible from within) */}
           <Link
             href="/settings"
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:text-ink-200"
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:border-white/[0.14] hover:text-ink-200"
             title="تنظیمات"
           >
             <Settings className="h-3.5 w-3.5" />
           </Link>
 
+          {/* Profile */}
           <Link
             href="/profile"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:text-ink-200"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:border-white/[0.14] hover:text-ink-200"
             title="پروفایل"
           >
             <User className="h-3.5 w-3.5" />

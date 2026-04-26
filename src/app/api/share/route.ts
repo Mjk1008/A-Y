@@ -51,18 +51,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Create new share token
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS shared_analyses (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID,
-      analysis_id UUID,
-      token TEXT UNIQUE,
-      view_count INT DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `).catch(() => {});
-
+  // Create new share token (W8: table already created via db-migrate)
   const token = generateToken();
   await pool.query(
     `INSERT INTO shared_analyses (user_id, analysis_id, token)
@@ -125,11 +114,7 @@ export async function GET(req: NextRequest) {
 }
 
 function generateToken(): string {
-  // AY- prefix + 8 random chars
-  const chars = "abcdefghjkmnpqrstuvwxyz23456789";
-  let s = "AY";
-  for (let i = 0; i < 8; i++) {
-    s += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return s;
+  // W6: use crypto.randomBytes for cryptographically secure tokens
+  const { randomBytes } = require("crypto") as typeof import("crypto");
+  return "AY" + randomBytes(6).toString("hex").toUpperCase();
 }

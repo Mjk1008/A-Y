@@ -594,17 +594,17 @@ function FinalCta() {
             <MascotArt state="sparkle" frame={0} blink={false} scale={3} accent="#34d399" />
           </div>
           <h2 className="text-4xl font-black leading-[1.05] tracking-tighter text-ink-50">
-            آماده‌ای؟
+            آماده‌ای شروع کنی؟
           </h2>
           <p className="mx-auto mt-4 max-w-xs text-[13px] leading-relaxed text-ink-400">
-            بدون کارت اعتباری. تحلیل اولیه رایگانه.
+            تحلیل اولیه‌ات رایگانه — ۳ دقیقه وقت می‌بره.
           </p>
           <Link href="/signup" className="btn-lux mt-6 inline-flex">
-            شروع کن
+            شروع کن — رایگان
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <p className="mt-4 text-[11px] text-ink-600">
-            بدون کارت اعتباری · هر وقت خواستی لغو کن
+            بدون نیاز به کارت اعتباری · هر وقت خواستی لغو کن
           </p>
         </Reveal>
       </div>

@@ -108,9 +108,8 @@ export default function MatchedJobs({ limit = 3, userSkills = [] }: { limit?: nu
       </div>
 
       {/* Filter chips — horizontal scroll */}
-      <div style={{
-        display: "flex", gap: 7, overflowX: "auto", marginBottom: 14,
-        scrollbarWidth: "none",
+      <div className="h-scroll-free" style={{
+        display: "flex", gap: 7, marginBottom: 14,
       }}>
         {FILTERS.map((f, i) => (
           <button

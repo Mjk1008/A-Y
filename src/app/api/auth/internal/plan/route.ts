@@ -3,7 +3,9 @@ import { pool } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get("x-internal-secret");
-  if (!secret || secret !== (process.env.INTERNAL_SECRET ?? "")) {
+  const expected = process.env.INTERNAL_SECRET;
+  // Require a non-empty INTERNAL_SECRET — fail-closed if env var not set
+  if (!expected || !secret || secret !== expected) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const id = req.nextUrl.searchParams.get("id");

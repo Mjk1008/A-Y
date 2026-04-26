@@ -23,16 +23,20 @@ async function getPayload(req: NextRequest) {
 /** Re-issue a fresh 1-hour token, fetching current plan from DB */
 async function refreshToken(payload: { id: string; phone: string; plan: string }, origin: string) {
   let plan = payload.plan;
-  try {
-    const res = await fetch(
-      `${origin}/api/auth/internal/plan?id=${payload.id}`,
-      { headers: { "x-internal-secret": process.env.INTERNAL_SECRET ?? "" } }
-    );
-    if (res.ok) {
-      const data = await res.json() as { plan: string };
-      plan = data.plan;
-    }
-  } catch { /* keep existing plan on failure */ }
+  // Only attempt plan refresh if INTERNAL_SECRET is properly configured
+  const internalSecret = process.env.INTERNAL_SECRET;
+  if (internalSecret) {
+    try {
+      const res = await fetch(
+        `${origin}/api/auth/internal/plan?id=${payload.id}`,
+        { headers: { "x-internal-secret": internalSecret } }
+      );
+      if (res.ok) {
+        const data = await res.json() as { plan: string };
+        plan = data.plan;
+      }
+    } catch { /* keep existing plan on failure */ }
+  }
   return new SignJWT({ id: payload.id, phone: payload.phone, plan })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("1h")

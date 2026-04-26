@@ -66,9 +66,9 @@ function NewsCarousel({ items }: { items: MagazineItem[] }) {
         ref={trackRef}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
+        className="h-scroll"
         style={{
-          display: "flex", gap: 12, overflowX: "auto", scrollSnapType: "x mandatory",
-          scrollbarWidth: "none", paddingBottom: 4,
+          display: "flex", gap: 12, paddingBottom: 4,
         }}
       >
         {items.map((item, i) => {
@@ -155,29 +155,33 @@ function NewsCarousel({ items }: { items: MagazineItem[] }) {
         <button
           onClick={() => goTo(active - 1)}
           disabled={active === 0}
+          aria-label="خبر قبلی"
           style={{
-            width: 30, height: 30, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.1)",
+            width: 44, height: 44, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.1)",
             background: "rgba(255,255,255,0.04)", cursor: active === 0 ? "not-allowed" : "pointer",
             display: "grid", placeItems: "center", opacity: active === 0 ? 0.3 : 1,
+            flexShrink: 0,
           }}
         >
-          <ChevronRight size={14} color="#e8efea" />
+          <ChevronRight size={16} color="#e8efea" />
         </button>
 
         {/* Dots */}
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {items.map((_, i) => (
             <button
               key={i}
               onClick={() => goTo(i)}
+              aria-label={`خبر ${i + 1}`}
               style={{
-                width: i === active ? 18 : 6,
-                height: 6, borderRadius: 3,
+                width: i === active ? 20 : 7,
+                height: 7, borderRadius: 4,
                 background: i === active
                   ? CARD_PALETTES[active % CARD_PALETTES.length].accent
                   : "rgba(255,255,255,0.15)",
                 border: "none", cursor: "pointer", padding: 0,
                 transition: "all 0.25s",
+                minWidth: i === active ? 20 : 7,
               }}
             />
           ))}
@@ -186,13 +190,15 @@ function NewsCarousel({ items }: { items: MagazineItem[] }) {
         <button
           onClick={() => goTo(active + 1)}
           disabled={active === items.length - 1}
+          aria-label="خبر بعدی"
           style={{
-            width: 30, height: 30, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.1)",
+            width: 44, height: 44, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.1)",
             background: "rgba(255,255,255,0.04)", cursor: active === items.length - 1 ? "not-allowed" : "pointer",
             display: "grid", placeItems: "center", opacity: active === items.length - 1 ? 0.3 : 1,
+            flexShrink: 0,
           }}
         >
-          <ChevronLeft size={14} color="#e8efea" />
+          <ChevronLeft size={16} color="#e8efea" />
         </button>
       </div>
     </div>
@@ -376,12 +382,12 @@ export default function MagazinePage() {
         transition: "background 0.5s, border-color 0.5s",
       }}>
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/dashboard" style={{
-            width: 36, height: 36, borderRadius: 10, display: "grid", placeItems: "center",
+          <Link href="/dashboard" aria-label="بازگشت" style={{
+            width: 44, height: 44, borderRadius: 12, display: "grid", placeItems: "center", flexShrink: 0,
             background: hasContent ? "rgba(31,31,51,0.6)" : "rgba(30,22,4,0.6)",
             border: hasContent ? "1px solid rgba(99,102,241,0.18)" : "1px solid rgba(180,140,60,0.2)",
           }}>
-            <ArrowRight size={15} color="#e8efea" />
+            <ArrowRight size={16} color="#e8efea" />
           </Link>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 14 }}>

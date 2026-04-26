@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { pool } from "@/lib/db";
 import { updateStreak } from "@/lib/streak";
+import { PLANS } from "@/app/config/plans";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -124,6 +125,17 @@ async function persistMessages(
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   LOG USAGE helper (called after successful response)
+─────────────────────────────────────────────────────────────────── */
+function logUsage(userId: string, mode: string, messagesCount: number) {
+  pool.query(
+    `INSERT INTO usage_logs (user_id, type, metadata) VALUES ($1, 'chat_message', $2)`,
+    [userId, JSON.stringify({ mode, messages_count: messagesCount })]
+  ).catch(() => {});
+  updateStreak(userId).catch(() => {});
+}
+
+/* ──────────────────────────────────────────────────────────────────
    HANDLER
 ─────────────────────────────────────────────────────────────────── */
 export async function POST(req: NextRequest) {
@@ -142,10 +154,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "no messages" }, { status: 400 });
     }
 
-    // ── Daily chat limit for free users (5 messages/day) ─────────
-    // Snake game reward: each win today adds +1 to the effective limit
-    const FREE_DAILY_CHAT_LIMIT = 5;
+    // ── Quota check ───────────────────────────────────────────────
+    const planDef = PLANS.find((p) => p.id === session.plan) ?? PLANS[0];
+    const monthlyLimit = planDef.limits.chatMessagesPerMonth;
+
     if (session.plan === "free") {
+      // Free users: daily limit (5/day + snake game bonuses)
+      const FREE_DAILY_CHAT_LIMIT = 5;
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const [usageRes, snakeBonusRes] = await Promise.all([
         pool.query(
@@ -161,8 +176,8 @@ export async function POST(req: NextRequest) {
           [session.id, today.toISOString()]
         ).catch(() => ({ rows: [{ count: "0" }] })),
       ]);
-      const usedToday    = parseInt(usageRes.rows[0].count ?? "0");
-      const snakeBonus   = parseInt(snakeBonusRes.rows[0].count ?? "0");
+      const usedToday      = parseInt(usageRes.rows[0].count ?? "0");
+      const snakeBonus     = parseInt(snakeBonusRes.rows[0].count ?? "0");
       const effectiveLimit = FREE_DAILY_CHAT_LIMIT + snakeBonus;
       if (usedToday >= effectiveLimit) {
         return NextResponse.json(
@@ -170,10 +185,30 @@ export async function POST(req: NextRequest) {
           { status: 429 }
         );
       }
+    } else if (monthlyLimit > 0) {
+      // Pro/Max users: monthly limit (W4)
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const usageRes = await pool.query(
+        `SELECT COUNT(*) FROM usage_logs
+         WHERE user_id=$1 AND type='chat_message' AND created_at >= $2`,
+        [session.id, monthStart.toISOString()]
+      );
+      const usedThisMonth = parseInt(usageRes.rows[0].count ?? "0");
+      if (usedThisMonth >= monthlyLimit) {
+        return NextResponse.json(
+          { error: "monthly_limit", used: usedThisMonth, limit: monthlyLimit, remaining: 0 },
+          { status: 429 }
+        );
+      }
     }
 
     // Last user message (for mock + persistence)
     const lastUserMsg = messages.filter((m) => m.role === "user").pop()?.content ?? "";
+
+    // W2: plan-based max_tokens
+    const maxTokens = planDef.limits.chatOutputTokens || 1500;
 
     let systemPrompt: string;
 
@@ -193,13 +228,6 @@ export async function POST(req: NextRequest) {
       systemPrompt = FREE_SYSTEM_PROMPT;
     }
 
-    // Log usage + update streak (non-blocking)
-    pool.query(
-      `INSERT INTO usage_logs (user_id, type, metadata) VALUES ($1, 'chat_message', $2)`,
-      [session.id, JSON.stringify({ mode, messages_count: messages.length })]
-    ).catch(() => {});
-    updateStreak(session.id).catch(() => {});
-
     const fullMessages: ChatMessage[] = [
       { role: "system", content: systemPrompt },
       ...messages.slice(-30),
@@ -216,6 +244,8 @@ export async function POST(req: NextRequest) {
             controller.enqueue(encoder.encode(chunk));
           }
           controller.close();
+          // W3: log usage AFTER successful response
+          logUsage(session.id, mode, messages.length);
           if (conversationId) {
             await persistMessages(conversationId, session.id, lastUserMsg, accumulated);
           }
@@ -239,7 +269,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: MODEL,
         stream: true,
-        max_tokens: 1500,
+        max_tokens: maxTokens,
         messages: fullMessages,
       }),
     });
@@ -289,7 +319,8 @@ export async function POST(req: NextRequest) {
         } finally {
           controller.close();
           reader.releaseLock();
-          // Persist after streaming is fully done
+          // W3: log usage AFTER streaming is fully done (not before)
+          logUsage(session.id, mode, messages.length);
           if (conversationId && accumulated) {
             await persistMessages(conversationId, session.id, lastUserMsg, accumulated);
           }

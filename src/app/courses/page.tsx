@@ -12,9 +12,7 @@ export default async function CoursesPage() {
 
   return (
     <div className="min-h-[100dvh] pb-28" style={{ background: "#020306", color: "#e8efea" }}>
-      <BottomNav />
-
-      {/* Header */}
+      {/* Header first for screen reader order */}
       <header
         className="sticky top-0 z-40 border-b border-white/[0.06]"
         style={{
@@ -26,7 +24,8 @@ export default async function CoursesPage() {
         <div className="mx-auto flex max-w-md items-center gap-3 px-5 py-3.5">
           <Link
             href="/dashboard"
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-400 transition hover:text-ink-200"
+            aria-label="بازگشت"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-400 transition hover:text-ink-200"
           >
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -39,6 +38,7 @@ export default async function CoursesPage() {
         </div>
       </header>
 
+      <BottomNav />
       <CoursesMascotBanner />
       <Courses limit={20} />
     </div>

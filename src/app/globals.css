@@ -285,10 +285,20 @@ h1, h2, h3 {
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
   scrollbar-width: none;
 }
 .h-scroll::-webkit-scrollbar { display: none; }
 .snap-center { scroll-snap-align: center; }
+
+/* ─── horizontal touch-scroll strip (no snap) ────── */
+.h-scroll-free {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+}
+.h-scroll-free::-webkit-scrollbar { display: none; }
 
 /* ─── Marquee ──────────────────────────────────────── */
 @keyframes marquee {
@@ -384,5 +394,6 @@ html[data-theme="sky"] nav { background: rgba(230,240,240,0.9) !important; }
 /* ─── Chat / scrollable sections touch scroll ───────────────────── */
 .scroll-touch {
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   overscroll-behavior-y: contain;
 }

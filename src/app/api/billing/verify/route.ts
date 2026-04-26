@@ -50,12 +50,16 @@ export async function GET(req: NextRequest) {
       [refId, invoice.id]
     );
 
-    // Upsert subscription
+    // Deactivate any existing active subscriptions, then insert the new one
+    // (avoids ON CONFLICT DO NOTHING which silently drops renewals)
+    await query(
+      `UPDATE subscriptions SET status='replaced' WHERE user_id=$1 AND status='active'`,
+      [invoice.user_id]
+    );
     await query(
       `INSERT INTO subscriptions
          (user_id, plan_type, status, expires_at, payment_ref, zarinpal_ref, amount_toman, billing_cycle)
-       VALUES ($1, $2, 'active', $3, $4, $5, $6, $7)
-       ON CONFLICT DO NOTHING`,
+       VALUES ($1, $2, 'active', $3, $4, $5, $6, $7)`,
       [invoice.user_id, invoice.plan_type, expiresAt, authority, refId,
        invoice.amount_toman, invoice.billing_cycle]
     );

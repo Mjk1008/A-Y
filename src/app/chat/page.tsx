@@ -26,7 +26,7 @@ export default async function ChatPage() {
   const nickname = profile.nickname || profile.full_name?.split(" ")[0] || "کاربر";
 
   return (
-    <div className="flex h-[100dvh] flex-col" style={{ background: "#020306", color: "#e8efea" }}>
+    <>
       <BottomNav />
       <ChatClient
         nickname={nickname}
@@ -35,6 +35,6 @@ export default async function ChatPage() {
         hasAnalysis={!!analysis}
         plan={session.plan ?? "free"}
       />
-    </div>
+    </>
   );
 }

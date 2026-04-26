@@ -13,14 +13,20 @@ export async function POST() {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-    const profileRes = await pool.query(
-      "SELECT * FROM profiles WHERE user_id=$1",
-      [session.id]
-    );
+    // O3: fetch profile + resume in parallel
+    const [profileRes, resumeRes] = await Promise.all([
+      pool.query("SELECT * FROM profiles WHERE user_id=$1", [session.id]),
+      pool.query(
+        "SELECT parsed_text FROM resumes WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1",
+        [session.id]
+      ),
+    ]);
+
     if (profileRes.rows.length === 0)
       return NextResponse.json({ error: "no_profile" }, { status: 400 });
 
     const profile = profileRes.rows[0];
+    const resume  = resumeRes.rows[0] ?? null;
 
     // ── Quota check ────────────────────────────────────────────────────
     // 2048 and memory game rewards each add +1 to the weekly analysis limit
@@ -28,8 +34,11 @@ export async function POST() {
     const weeklyLimit = planDef.limits.analysesPerWeek;
 
     if (weeklyLimit !== -1) {
+      // W5: week starts on Monday (not Sunday)
       const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const day = weekStart.getDay(); // 0=Sun, 1=Mon...
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      weekStart.setDate(weekStart.getDate() + diffToMonday);
       weekStart.setHours(0, 0, 0, 0);
 
       const [usageRes, gameBonusRes] = await Promise.all([
@@ -60,11 +69,10 @@ export async function POST() {
       }
     }
 
-    const resumeRes = await pool.query(
-      "SELECT parsed_text FROM resumes WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1",
-      [session.id]
-    );
-    const resume = resumeRes.rows[0] ?? null;
+    // W1/O6: cast includes "max" (previously "max" fell back to "free" token limit)
+    const planCast = (["free", "pro", "max"].includes(session.plan)
+      ? session.plan
+      : "free") as "free" | "pro" | "max";
 
     const input: ProfileInput = {
       full_name: profile.full_name,
@@ -75,7 +83,7 @@ export async function POST() {
       skills: profile.skills ?? [],
       bio: profile.bio ?? undefined,
       resume_text: resume?.parsed_text ?? undefined,
-      plan: (session.plan as "free" | "pro") ?? "free",
+      plan: planCast,
     };
 
     const result = await analyzeProfile(input);

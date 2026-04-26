@@ -275,7 +275,7 @@ export function SnakeGame({ onGameOver }: { onGameOver?: (score: number) => void
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        <canvas ref={canvasRef} width={W} height={H} style={{ display: "block", touchAction: "none", maxWidth: "100%" }} />
+        <canvas ref={canvasRef} width={W} height={H} style={{ display: "block", touchAction: "none", maxWidth: "100%", height: "auto" }} />
 
         {/* Idle overlay */}
         {phase === "idle" && (

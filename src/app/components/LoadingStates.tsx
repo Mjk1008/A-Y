@@ -291,7 +291,7 @@ export function OfflineDetector() {
         dir="rtl"
         style={{
           position: "fixed",
-          bottom: 80,
+          bottom: 96,
           left: 12, right: 12,
           zIndex: 9998,
           background: "rgba(5,9,10,0.97)",

@@ -7,34 +7,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 
-/* ── Ensure tables exist ─────────────────────────────────────────── */
-async function ensureReferralTables() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS referral_codes (
-      id SERIAL PRIMARY KEY,
-      user_id UUID UNIQUE,
-      code TEXT UNIQUE,
-      used_count INT DEFAULT 0,
-      reward_given INT DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `).catch(() => {});
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS referral_uses (
-      id SERIAL PRIMARY KEY,
-      referrer_id UUID,
-      referred_id UUID,
-      used_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `).catch(() => {});
-}
+// W8: table creation removed — referral tables are managed in lib/crawlers/db-migrate.ts
 
 /* ── GET: get (or generate) referral code ────────────────────────── */
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-
-  await ensureReferralTables();
 
   // Check if user already has a code
   const existing = await pool.query(
@@ -75,11 +53,19 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
+  // W11: only new accounts (created within last 7 days) can apply a referral
+  const userRes = await pool.query("SELECT created_at FROM users WHERE id=$1", [session.id]);
+  if (userRes.rows.length > 0) {
+    const accountAge = Date.now() - new Date(userRes.rows[0].created_at).getTime();
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+    if (accountAge > SEVEN_DAYS) {
+      return NextResponse.json({ error: "referral_expired" }, { status: 403 });
+    }
+  }
+
   const body = await req.json().catch(() => ({}));
   const code: string | undefined = body.code;
   if (!code) return NextResponse.json({ error: "no code" }, { status: 400 });
-
-  await ensureReferralTables();
 
   // Find referrer
   const referrer = await pool.query(
