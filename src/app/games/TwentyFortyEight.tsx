@@ -149,6 +149,16 @@ export function TwentyFortyEightGame({ onGameOver }: { onGameOver?: (score: numb
   }, [handleDir]);
 
   const touchStart = useRef({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const prevent = (e: TouchEvent) => e.preventDefault();
+    el.addEventListener("touchmove", prevent, { passive: false });
+    return () => el.removeEventListener("touchmove", prevent);
+  }, []);
+
   const onTouchStart = (e: React.TouchEvent) => {
     touchStart.current.x = e.touches[0].clientX;
     touchStart.current.y = e.touches[0].clientY;
@@ -157,7 +167,7 @@ export function TwentyFortyEightGame({ onGameOver }: { onGameOver?: (score: numb
     const dx = e.changedTouches[0].clientX - touchStart.current.x;
     const dy = e.changedTouches[0].clientY - touchStart.current.y;
     if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
-    if (Math.abs(dx) > Math.abs(dy)) handleDir(dx > 0 ? "right" : "left");
+    if (Math.abs(dx) > Math.abs(dy)) handleDir(dx > 0 ? "left" : "right");
     else handleDir(dy > 0 ? "down" : "up");
   };
 
@@ -201,6 +211,7 @@ export function TwentyFortyEightGame({ onGameOver }: { onGameOver?: (score: numb
 
       {/* Grid */}
       <div
+        ref={containerRef}
         style={{
           position: "relative",
           padding: GRID_PAD,
