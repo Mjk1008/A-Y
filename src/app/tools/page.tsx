@@ -176,38 +176,44 @@ export default function ToolsPage() {
         </div>
 
         {/* Filters row */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          {/* Difficulty */}
-          <select
-            value={difficulty}
-            onChange={e => setDiff(e.target.value)}
-            style={{
-              padding: "6px 10px", borderRadius: 10, fontSize: 11.5, fontWeight: 600,
-              background: "rgba(31,46,40,0.5)", border: "1px solid rgba(110,231,183,0.14)",
-              color: difficulty ? "#6ee7b7" : "rgba(232,239,234,0.5)",
-              fontFamily: "inherit", cursor: "pointer",
-            }}
-          >
-            <option value="">سطح: همه</option>
-            <option value="beginner">مبتدی</option>
-            <option value="intermediate">متوسط</option>
-            <option value="advanced">پیشرفته</option>
-          </select>
+        <div style={{ display: "flex", gap: 7, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+          {/* Difficulty — pill buttons, no native select */}
+          {[
+            { val: "",             label: "همه سطح‌ها" },
+            { val: "beginner",     label: "مبتدی" },
+            { val: "intermediate", label: "متوسط" },
+            { val: "advanced",     label: "پیشرفته" },
+          ].map(({ val, label }) => (
+            <button
+              key={val}
+              onClick={() => setDiff(val)}
+              style={{
+                flexShrink: 0, padding: "5px 11px", borderRadius: 20,
+                fontSize: 11, fontWeight: 700, fontFamily: "inherit",
+                cursor: "pointer", border: "1px solid", transition: "all 0.15s",
+                background: difficulty === val ? "rgba(52,211,153,0.18)" : "rgba(31,46,40,0.4)",
+                borderColor: difficulty === val ? "rgba(52,211,153,0.4)" : "rgba(110,231,183,0.12)",
+                color: difficulty === val ? "#6ee7b7" : "rgba(232,239,234,0.5)",
+              }}
+            >
+              {label}
+            </button>
+          ))}
 
           {/* Iran accessible toggle */}
           <button
             onClick={() => setIranOnly(!iranOnly)}
             style={{
               display: "flex", alignItems: "center", gap: 5,
-              padding: "6px 12px", borderRadius: 10, fontSize: 11.5, fontWeight: 600,
+              padding: "5px 11px", borderRadius: 20, fontSize: 11, fontWeight: 700,
               fontFamily: "inherit", cursor: "pointer", border: "1px solid",
-              background: iranOnly ? "rgba(16,185,129,0.18)" : "rgba(31,46,40,0.5)",
-              borderColor: iranOnly ? "rgba(52,211,153,0.4)" : "rgba(110,231,183,0.14)",
+              background: iranOnly ? "rgba(16,185,129,0.18)" : "rgba(31,46,40,0.4)",
+              borderColor: iranOnly ? "rgba(52,211,153,0.4)" : "rgba(110,231,183,0.12)",
               color: iranOnly ? "#6ee7b7" : "rgba(232,239,234,0.5)",
               transition: "all 0.15s",
             }}
           >
-            <Globe size={12} />
+            <Globe size={11} />
             بدون VPN
           </button>
         </div>
