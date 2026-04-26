@@ -10,3 +10,5 @@ next-env.d.ts
 .netlify
 preload-trace.log
 package-lock.json
+%USERPROFILE%
+.claude
