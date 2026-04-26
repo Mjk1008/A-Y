@@ -33,6 +33,7 @@ export default async function ChatPage() {
         jobTitle={profile.job_title || ""}
         industry={profile.industry || ""}
         hasAnalysis={!!analysis}
+        plan={session.plan ?? "free"}
       />
     </div>
   );

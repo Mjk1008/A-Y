@@ -13,6 +13,20 @@
 
 import { pool } from "@/lib/db";
 
+/* Ensure table exists — idempotent, fast on subsequent calls */
+async function ensureStreakTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_streaks (
+      user_id           UUID PRIMARY KEY,
+      current_streak    INT DEFAULT 0,
+      best_streak       INT DEFAULT 0,
+      last_activity_date DATE,
+      total_days_active INT DEFAULT 0,
+      updated_at        TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).catch(() => {});
+}
+
 export interface StreakData {
   currentStreak: number;
   bestStreak: number;
@@ -22,6 +36,7 @@ export interface StreakData {
 
 export async function updateStreak(userId: string): Promise<StreakData> {
   try {
+    await ensureStreakTable();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().slice(0, 10); // "YYYY-MM-DD"
@@ -97,6 +112,7 @@ export async function updateStreak(userId: string): Promise<StreakData> {
 
 export async function getStreak(userId: string): Promise<StreakData> {
   try {
+    await ensureStreakTable();
     const res = await pool.query(
       `SELECT current_streak, best_streak, last_activity_date, total_days_active
        FROM user_streaks WHERE user_id = $1`,

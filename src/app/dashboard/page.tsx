@@ -25,8 +25,10 @@ import {
 import { DashboardClient } from "./DashboardClient";
 import { BottomNav } from "@/app/components/BottomNav";
 import { LogoStatic } from "@/app/components/Logo";
+import { NotificationBell } from "@/app/components/NotificationBell";
 import { PLANS } from "@/app/config/plans";
 import { getStreak } from "@/lib/streak";
+import { TodayTask } from "./TodayTask";
 
 const ADMIN_PHONE = "09366291008";
 
@@ -57,7 +59,7 @@ export default async function DashboardPage() {
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   weekStart.setHours(0, 0, 0, 0);
 
-  const [latestRes, analysesUsedRes, jobCountRes, courseCountRes, subRes, progressRes, streakData] =
+  const [latestRes, analysesUsedRes, jobCountRes, courseCountRes, subRes, progressRes, streakData, roadmapProgressRes] =
     await Promise.all([
       pool.query(
         "SELECT id, result_json, created_at FROM analyses WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1",
@@ -93,6 +95,12 @@ export default async function DashboardPage() {
         )
         .catch(() => ({ rows: [{ done: "0", total: "0" }] })),
       getStreak(session.id).catch(() => ({ currentStreak: 0, bestStreak: 0, lastActivityDate: null, totalDaysActive: 0 })),
+      pool
+        .query(
+          `SELECT week_num, day_num, task_key, completed FROM roadmap_progress WHERE user_id=$1`,
+          [session.id]
+        )
+        .catch(() => ({ rows: [] })),
     ]);
 
   const latest = latestRes.rows[0] ?? null;
@@ -103,6 +111,34 @@ export default async function DashboardPage() {
   const progressDone = parseInt(progressRes.rows[0]?.done ?? "0", 10);
   const progressTotal = parseInt(progressRes.rows[0]?.total ?? "0", 10);
 
+  // Find "today's task" — first incomplete goal in the roadmap
+  const r = latest?.result_json as AnalysisResult | null;
+  const roadmap = r?.roadmap ?? [];
+  const roadmapProgressRows = roadmapProgressRes.rows as Array<{
+    week_num: number; day_num: number; task_key: string; completed: boolean;
+  }>;
+  const progressSet = new Set(
+    roadmapProgressRows.filter(p => p.completed).map(p => `${p.week_num}-${p.day_num}-goal`)
+  );
+
+  let todayTask: { task: string; weekNum: number; dayNum: number; weekLabel: string; weekIndex: number; alreadyDone: boolean } | null = null;
+  outer: for (let wi = 0; wi < roadmap.length; wi++) {
+    const week = roadmap[wi];
+    for (let gi = 0; gi < week.goals.length; gi++) {
+      const isDone = progressSet.has(`${wi}-${gi}-goal`);
+      if (!isDone) {
+        todayTask = { task: week.goals[gi], weekNum: wi, dayNum: gi, weekLabel: week.week, weekIndex: wi, alreadyDone: false };
+        break outer;
+      }
+    }
+  }
+  // If all done, show the last task as completed
+  if (!todayTask && roadmap.length > 0) {
+    const lastWeek = roadmap[roadmap.length - 1];
+    const lastGoal = lastWeek.goals[lastWeek.goals.length - 1];
+    todayTask = { task: lastGoal, weekNum: roadmap.length - 1, dayNum: lastWeek.goals.length - 1, weekLabel: lastWeek.week, weekIndex: roadmap.length - 1, alreadyDone: true };
+  }
+
   let daysLeft: number | null = null;
   let isNearExpiry = false;
   if (subscription?.expires_at) {
@@ -111,7 +147,6 @@ export default async function DashboardPage() {
     isNearExpiry = daysLeft <= 7;
   }
 
-  const r = latest?.result_json as AnalysisResult | null;
   // Use nickname if set, otherwise first name
   const firstName =
     (profile.nickname as string | null) ??
@@ -179,6 +214,20 @@ export default async function DashboardPage() {
             </div>
             <Flame className="h-5 w-5 text-orange-400 shrink-0" />
           </div>
+        )}
+
+        {/* ── Today's Roadmap Task ── */}
+        {todayTask && latest && (
+          <TodayTask
+            task={todayTask.task}
+            weekNum={todayTask.weekNum}
+            dayNum={todayTask.dayNum}
+            analysisId={latest.id}
+            weekLabel={todayTask.weekLabel}
+            weekIndex={todayTask.weekIndex}
+            totalWeeks={roadmap.length || 4}
+            alreadyDone={todayTask.alreadyDone}
+          />
         )}
 
         {/* ── Expiry warning ── */}
@@ -564,6 +613,8 @@ function DashboardHeader({
             {isPro && !isMax && <Zap className="mr-1 inline h-3 w-3" />}
             {planLabel}
           </span>
+
+          <NotificationBell />
 
           <Link
             href="/billing"
