@@ -104,19 +104,15 @@ function PingBadge({ ping }: { ping?: PingResult }) {
     return (
       <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
         <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#f87171", display: "inline-block" }} />
-        <span style={{ fontSize: 9.5, color: "rgba(248,113,113,0.7)", fontWeight: 600 }}>بدون VPN وصل نمیشه</span>
+        <span style={{ fontSize: 9.5, color: "rgba(248,113,113,0.7)", fontWeight: 600 }}>آفلاین</span>
       </div>
     );
   }
 
-  const color = ping.ms < 500 ? "#34d399" : ping.ms < 1500 ? "#fde68a" : "#fb923c";
-  const label = ping.ms < 500 ? "سرعت عالی" : ping.ms < 1500 ? "سرعت متوسط" : "سرعت پایین";
-
   return (
     <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
-      <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, display: "inline-block" }} />
-      <span style={{ fontSize: 9.5, color, fontWeight: 600 }}>{label}</span>
-      <span style={{ fontSize: 9, color: "rgba(232,239,234,0.25)" }}>· {ping.ms} ms</span>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#34d399", display: "inline-block" }} />
+      <span style={{ fontSize: 9.5, color: "#34d399", fontWeight: 600 }}>وصل میشه</span>
     </div>
   );
 }
@@ -181,11 +177,11 @@ function ToolDetailSheet({ tool, onClose, ping }: { tool: Tool; onClose: () => v
             fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 8,
             display: "flex", alignItems: "center", gap: 5,
             background: ping.ok ? "rgba(52,211,153,0.08)" : "rgba(248,113,113,0.08)",
-            color: ping.ok ? (ping.ms < 500 ? "#34d399" : ping.ms < 1500 ? "#fde68a" : "#fb923c") : "#f87171",
+            color: ping.ok ? "#34d399" : "#f87171",
             border: `1px solid ${ping.ok ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)"}`,
           }}>
             <Wifi size={11} />
-            {ping.ok ? `${ping.ms} ms از ایران` : "قابل دسترس نیست"}
+            {ping.ok ? "وصل میشه" : "آفلاین"}
           </span>
         )}
       </div>
