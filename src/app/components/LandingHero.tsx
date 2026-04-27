@@ -106,8 +106,8 @@ export default function LandingHero() {
           margin: "14px 0 0", fontSize: 14,
           color: "rgba(232,239,234,0.65)", lineHeight: 1.7, maxWidth: 300,
         }}>
-          یک دستیار پیکسلی و مهربون که می‌گه کدوم ابزار AI رو{" "}
-          <strong style={{ color: "#e8efea" }}>برای شغل خودت</strong> یاد بگیری — قدم به قدم.
+          می‌گیم کدوم ابزار AI رو{" "}
+          <strong style={{ color: "#e8efea" }}>برای شغل خودت</strong> یاد بگیری — با مثال، قدم به قدم.
         </p>
 
         {/* CTAs */}

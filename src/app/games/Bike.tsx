@@ -26,6 +26,19 @@ interface Flower { x: number; y: number; color: string; collected: boolean; }
 
 const PETAL = ["#ff4081","#ff9800","#ffeb3b","#e91e63","#ab47bc","#00bcd4","#ff5722"];
 
+// ─── فائزه's thoughts ──────────────────────────────────────────────────────────
+const CHARACTER_NAME = "فائزه";
+const THOUGHTS = [
+  "انرژی دارمم 💪",
+  "تند تر برووو 🚀",
+  "وای دستم نشکنه 😬",
+  "آقاهه عجب داسی میزنه !! 😎",
+  "یالا یالا! 🔥",
+  "نه نه نه... 😱",
+  "پاهام دیگه جون نداره 😤",
+  "هوا چقدر خوبه 🌸",
+];
+
 function loadBest() {
   if (typeof window === "undefined") return 0;
   return parseInt(localStorage.getItem("bike-best") ?? "0", 10);
@@ -51,6 +64,12 @@ export function BikeGame({ onGameOver }: { onGameOver?: (score: number) => void 
     score   : 0,
     running : false,
     over    : false,
+    // فائزه's thought bubble
+    thought      : "",
+    thoughtAlpha : 0,
+    thoughtY     : 0,
+    thoughtTimer : 0,
+    nextThought  : 110,
   });
 
   const [score, setScore]     = useState(0);
@@ -277,6 +296,53 @@ export function BikeGame({ onGameOver }: { onGameOver?: (score: number) => void 
 
     ctx.restore();
 
+    // ── فائزه's thought bubble ────────────────────────────────────────────
+    if (s.thoughtAlpha > 0 && s.thought) {
+      const hx = BIKE_X + 30;     // character head x
+      const ty = s.thoughtY;      // bubble bottom-y (floats upward)
+
+      ctx.save();
+      ctx.globalAlpha = s.thoughtAlpha;
+      ctx.font = "bold 12px sans-serif";
+      ctx.textAlign = "center";
+
+      const tw  = Math.min(ctx.measureText(s.thought).width + 20, 170);
+      const bh  = 26;
+      const bx2 = hx - tw / 2;
+      const by2 = ty - bh;
+      const r   = 9;
+
+      // Bubble fill + soft shadow
+      ctx.shadowColor = "rgba(0,0,0,0.18)"; ctx.shadowBlur = 8;
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.beginPath();
+      ctx.moveTo(bx2 + r, by2);
+      ctx.lineTo(bx2 + tw - r, by2);
+      ctx.quadraticCurveTo(bx2 + tw, by2,      bx2 + tw, by2 + r);
+      ctx.lineTo(bx2 + tw, by2 + bh - r);
+      ctx.quadraticCurveTo(bx2 + tw, by2 + bh, bx2 + tw - r, by2 + bh);
+      ctx.lineTo(bx2 + r, by2 + bh);
+      ctx.quadraticCurveTo(bx2, by2 + bh,      bx2, by2 + bh - r);
+      ctx.lineTo(bx2, by2 + r);
+      ctx.quadraticCurveTo(bx2, by2,            bx2 + r, by2);
+      ctx.closePath(); ctx.fill();
+
+      // Tail
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.moveTo(hx - 5, by2 + bh);
+      ctx.lineTo(hx,     by2 + bh + 7);
+      ctx.lineTo(hx + 5, by2 + bh);
+      ctx.closePath(); ctx.fill();
+
+      // Text
+      ctx.fillStyle = "#111827";
+      ctx.textBaseline = "middle";
+      ctx.fillText(s.thought, hx, by2 + bh / 2, tw - 8);
+
+      ctx.restore();
+    }
+
     // ── Idle / Game-over overlays handled in JSX ──────────────────────────
   }, []);
 
@@ -355,6 +421,20 @@ export function BikeGame({ onGameOver }: { onGameOver?: (score: number) => void 
     // Time-based score
     if (s.frame % 40 === 0) { s.score++; setScore(s.score); }
 
+    // ── فائزه's thought bubbles ────────────────────────────────────────
+    s.thoughtTimer++;
+    if (s.thoughtAlpha > 0) {
+      s.thoughtAlpha = Math.max(0, s.thoughtAlpha - 0.006);
+      s.thoughtY -= 0.22;
+    }
+    if (s.thoughtTimer >= s.nextThought && s.frame > 60) {
+      s.thought     = THOUGHTS[Math.floor(Math.random() * THOUGHTS.length)];
+      s.thoughtAlpha = 1;
+      s.thoughtY    = s.bikeY - 45;
+      s.thoughtTimer = 0;
+      s.nextThought  = 90 + Math.floor(Math.random() * 100);
+    }
+
     draw();
     rafRef.current = requestAnimationFrame(loop);
   }, [draw]);
@@ -373,6 +453,8 @@ export function BikeGame({ onGameOver }: { onGameOver?: (score: number) => void 
     s.rocks = []; s.flowers = [];
     s.score = 0; s.frame = 0; s.scrollX = 0; s.hillX = 0; s.wheelA = 0;
     s.running = true; s.over = false;
+    s.thought = ""; s.thoughtAlpha = 0; s.thoughtY = 0;
+    s.thoughtTimer = 0; s.nextThought = 110;
     setScore(0); setPhase("running");
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(loop);
@@ -426,7 +508,7 @@ export function BikeGame({ onGameOver }: { onGameOver?: (score: number) => void 
         {phase === "idle" && (
           <div style={{ position: "absolute", inset: 0, background: "rgba(0,18,10,0.82)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
             <div style={{ fontSize: 42 }}>🚲</div>
-            <div style={{ fontWeight: 900, fontSize: 20, color: "#34d399" }}>دوچرخه‌سواری</div>
+            <div style={{ fontWeight: 900, fontSize: 20, color: "#34d399" }}>{CHARACTER_NAME} آماده‌ای؟</div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", textAlign: "center", lineHeight: 1.8 }}>
               از سنگ‌ها رد شو<br/>
               <span style={{ color: "#ff9800" }}>🌸 گل‌ها</span> جمع کن (+۲ امتیاز)<br/>
@@ -436,7 +518,7 @@ export function BikeGame({ onGameOver }: { onGameOver?: (score: number) => void 
               onClick={start}
               style={{ padding: "10px 28px", borderRadius: 12, background: "#34d399", color: "#04110a", fontWeight: 800, fontSize: 14, border: "none", cursor: "pointer" }}
             >
-              شروع بازی
+              {CHARACTER_NAME} شروع کن!
             </button>
           </div>
         )}
@@ -455,8 +537,8 @@ export function BikeGame({ onGameOver }: { onGameOver?: (score: number) => void 
               textShadow: "0 0 32px rgba(52,211,153,0.55), 0 0 64px rgba(52,211,153,0.2)",
             }}>AY</div>
             {/* باختی */}
-            <div style={{ fontWeight: 900, fontSize: 26, color: "#ef4444", letterSpacing: "0.06em", marginBottom: 4 }}>
-              باختی 😅
+            <div style={{ fontWeight: 900, fontSize: 22, color: "#ef4444", letterSpacing: "0.04em", marginBottom: 4 }}>
+              ای‌وای {CHARACTER_NAME}، باختی 😅
             </div>
 
             {/* امتیازها */}

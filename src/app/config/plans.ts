@@ -113,8 +113,8 @@ export const PLANS: Plan[] = [
     accent: "brand",
     highlights: [
       "۵ تحلیل در هفته",
-      "مسیریاب AI (چت‌بات)",
-      "۲۰ شغل مچ‌شده روزانه",
+      "مسیریاب AI",
+      "۲۰ شغل پیشنهادی روزانه",
     ],
     limits: {
       analysesPerWeek:        5,

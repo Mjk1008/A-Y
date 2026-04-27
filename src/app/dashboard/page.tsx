@@ -188,7 +188,7 @@ export default async function DashboardPage() {
           <p className="mt-0.5 text-sm text-ink-400">
             {profile.job_title
               ? `${profile.job_title}${profile.industry ? ` · ${profile.industry}` : ""}`
-              : "مسیر حرفه‌ای هوشمند تو"}
+              : "بزن بریم"}
           </p>
         </div>
 
@@ -273,10 +273,10 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="mb-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 text-center">
-            <div className="mb-3 text-3xl">🤖</div>
-            <p className="mb-1 font-bold text-ink-100">اولین تحلیلت رو شروع کن</p>
+            <div className="mb-3 text-3xl">✨</div>
+            <p className="mb-1 font-bold text-ink-100">هنوز تحلیل نداری</p>
             <p className="mb-4 text-xs leading-relaxed text-ink-500">
-              بگو چی هستی و چی بلدی — AI بهت می‌گه چطور قوی‌تر بشی
+              شغل و مهارت‌هات رو بده — بقیه‌ش رو ما بلدیم
             </p>
             <Link href="/profile" className="btn-lux text-sm">
               شروع تحلیل
@@ -312,7 +312,7 @@ export default async function DashboardPage() {
           <FeatureCard
             href="/chat"
             title="مسیریاب AI"
-            desc={isPro ? "بپرس، جواب شخصی بگیر" : "۵ پیام در روز رایگان"}
+            desc={isPro ? "هر چی داری بپرس" : "۵ پیام در روز رایگان"}
             iconBg="bg-violet-500/20"
             icon={<MessageCircle className="h-5 w-5 text-violet-400" />}
             gradientFrom="from-violet-500/20"
@@ -324,7 +324,7 @@ export default async function DashboardPage() {
 
           <FeatureCard
             href="/jobs"
-            title="شغل‌های مچ‌شده"
+            title="شغل‌های پیشنهادی"
             desc={
               jobCount > 0
                 ? `${jobCount.toLocaleString("fa-IR")} موقعیت فعال`
@@ -356,7 +356,7 @@ export default async function DashboardPage() {
 
           <FeatureCard
             href="/dashboard/analysis#roadmap"
-            title="رودمپ هفتگی"
+            title="نقشه راه"
             desc={
               progressTotal > 0
                 ? `${progressDone.toLocaleString("fa-IR")} از ${progressTotal.toLocaleString(
@@ -419,7 +419,7 @@ export default async function DashboardPage() {
           <div className="flex-1">
             <h3 className="font-bold text-ink-100">بیکارم حال ندارم</h3>
             <p className="mt-0.5 text-[12px] text-ink-500 leading-relaxed">
-              وقتی نه AI می‌تونه کمکت کنه نه بازار سنتی
+              وقتی حوصله‌ات سر رفته
             </p>
           </div>
           <Gamepad2 className="h-5 w-5 text-fuchsia-400 transition-transform group-hover:scale-110" />
@@ -443,14 +443,13 @@ export default async function DashboardPage() {
           />
           {!isPro && (
             <p className="mt-2 text-[10.5px] text-ink-600">
-              پلن رایگان ·{" "}
               <Link
                 href="/billing/checkout"
                 className="text-emerald-500 transition hover:text-emerald-400"
               >
-                ارتقا به پرو
-              </Link>{" "}
-              برای ۵ تحلیل/هفته + مسیریاب AI
+                پلن پرو
+              </Link>
+              {" "}— ۵ تحلیل هفتگی + چت نامحدود
             </p>
           )}
         </div>

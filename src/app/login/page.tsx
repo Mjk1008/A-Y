@@ -55,7 +55,7 @@ function PhoneStep({
           <span style={{ color: "#6ee7b7" }}>رو وارد کن.</span>
         </h1>
         <p style={{ margin: 0, fontSize: 13, color: "rgba(232,239,234,0.6)", lineHeight: 1.6 }}>
-          فقط شماره موبایل ایرانیت رو وارد کن.
+          یه کد تأیید برات می‌فرستیم — بدون رمز.
         </p>
       </div>
 

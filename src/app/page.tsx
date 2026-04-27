@@ -317,7 +317,7 @@ function WhatYouGet() {
   const cards = [
     { icon: Brain,         t: "تحلیل شخصی",       d: "مخصوص شغل، صنعت و مهارت‌های دقیق خودت." },
     { icon: Route,         t: "نقشه راه ۴ هفته‌ای", d: "هفته به هفته می‌دونی دقیقاً چیکار کنی." },
-    { icon: Compass,       t: "مسیریاب (چت‌بات)",   d: "سوال بپرس — پروفایلت رو می‌شناسه." },
+    { icon: Compass,       t: "مسیریاب AI",          d: "سوال بپرس — پروفایلت رو می‌شناسه." },
     { icon: Briefcase,     t: "شغل‌های مناسب",       d: "پوزیشن‌هایی که با پروفایلت مچ می‌خورن." },
     { icon: GraduationCap, t: "دوره‌های منتخب",     d: "بهترین دوره‌های ایرانی بر اساس سطح خودت." },
     { icon: Shield,        t: "صادقانه و عملی",     d: "بدون وعده‌های توخالی. فقط راهکار واقعی." },
@@ -590,8 +590,14 @@ function FinalCta() {
     >
       <div className="mx-auto max-w-md text-center">
         <Reveal variant="scale">
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-            <MascotArt state="sparkle" frame={0} blink={false} scale={3} accent="#34d399" />
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: "linear-gradient(135deg, #34d399, #047857)",
+              display: "grid", placeItems: "center",
+              boxShadow: "0 0 40px rgba(52,211,153,0.35)",
+              fontSize: 22, fontWeight: 900, color: "#04110a",
+            }}>AY</div>
           </div>
           <h2 className="text-4xl font-black leading-[1.05] tracking-tighter text-ink-50">
             آماده‌ای شروع کنی؟
