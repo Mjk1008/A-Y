@@ -1,23 +1,26 @@
 // Zarinpal payment gateway integration
 // Docs: https://docs.zarinpal.com/paymentGateway/
 
-const _merchantId = process.env.ZARINPAL_MERCHANT_ID;
-if (!_merchantId || _merchantId.startsWith("XXXXXXXX")) {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("FATAL: ZARINPAL_MERCHANT_ID must be set in production");
+// Lazy config — evaluated at call time, not build time (avoids Next.js static analysis crash)
+function getConfig() {
+  const merchantId = process.env.ZARINPAL_MERCHANT_ID;
+  const sandbox = process.env.NODE_ENV !== "production";
+  if (!merchantId || merchantId.startsWith("XXXXXXXX")) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("FATAL: ZARINPAL_MERCHANT_ID must be set in production");
+    }
+    console.warn("⚠️  ZARINPAL_MERCHANT_ID not set — payment gateway calls will fail");
   }
-  console.warn("⚠️  ZARINPAL_MERCHANT_ID not set — payment gateway calls will fail");
+  return {
+    merchantId: merchantId || "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+    baseUrl: sandbox
+      ? "https://sandbox.zarinpal.com/pg/v4/payment"
+      : "https://api.zarinpal.com/pg/v4/payment",
+    gateway: sandbox
+      ? "https://sandbox.zarinpal.com/pg/StartPay"
+      : "https://www.zarinpal.com/pg/StartPay",
+  };
 }
-const MERCHANT_ID = _merchantId || "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX";
-const SANDBOX = process.env.NODE_ENV !== "production";
-
-const BASE_URL = SANDBOX
-  ? "https://sandbox.zarinpal.com/pg/v4/payment"
-  : "https://api.zarinpal.com/pg/v4/payment";
-
-const GATEWAY = SANDBOX
-  ? "https://sandbox.zarinpal.com/pg/StartPay"
-  : "https://www.zarinpal.com/pg/StartPay";
 
 export interface ZarinpalRequestResult {
   authority: string;
@@ -38,11 +41,12 @@ export async function zarinpalRequest(opts: {
   mobile?: string;
   email?: string;
 }): Promise<ZarinpalRequestResult> {
-  const res = await fetch(`${BASE_URL}/request.json`, {
+  const { merchantId, baseUrl, gateway } = getConfig();
+  const res = await fetch(`${baseUrl}/request.json`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      merchant_id: MERCHANT_ID,
+      merchant_id: merchantId,
       amount: opts.amountToman * 10,   // Zarinpal uses Rials
       description: opts.description,
       callback_url: opts.callbackUrl,
@@ -60,7 +64,7 @@ export async function zarinpalRequest(opts: {
 
   return {
     authority: data.data.authority,
-    gatewayUrl: `${GATEWAY}/${data.data.authority}`,
+    gatewayUrl: `${gateway}/${data.data.authority}`,
   };
 }
 
@@ -69,11 +73,12 @@ export async function zarinpalVerify(opts: {
   authority: string;
   amountToman: number;
 }): Promise<ZarinpalVerifyResult> {
-  const res = await fetch(`${BASE_URL}/verify.json`, {
+  const { merchantId, baseUrl } = getConfig();
+  const res = await fetch(`${baseUrl}/verify.json`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      merchant_id: MERCHANT_ID,
+      merchant_id: merchantId,
       amount: opts.amountToman * 10,
       authority: opts.authority,
     }),
