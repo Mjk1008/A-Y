@@ -113,6 +113,7 @@ function PingBadge({ ping }: { ping?: PingResult }) {
     <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#34d399", display: "inline-block" }} />
       <span style={{ fontSize: 9.5, color: "#34d399", fontWeight: 600 }}>وصل میشه</span>
+      <span style={{ fontSize: 9, color: "rgba(232,239,234,0.3)" }}>· {ping.ms} ms</span>
     </div>
   );
 }
@@ -181,7 +182,7 @@ function ToolDetailSheet({ tool, onClose, ping }: { tool: Tool; onClose: () => v
             border: `1px solid ${ping.ok ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)"}`,
           }}>
             <Wifi size={11} />
-            {ping.ok ? "وصل میشه" : "آفلاین"}
+            {ping.ok ? `وصل میشه · ${ping.ms} ms` : "آفلاین"}
           </span>
         )}
       </div>
