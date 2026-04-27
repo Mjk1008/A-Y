@@ -2,7 +2,7 @@
 
 import { PlayCircle, Star, Clock, ExternalLink, Search } from "lucide-react";
 import { SkeletonList } from "@/app/components/LoadingStates";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 interface Course {
   id: string;
@@ -45,6 +45,22 @@ export default function Courses({ limit = 3 }: { limit?: number }) {
   const [search, setSearch] = useState("");
   const [level, setLevel] = useState("");
   const [freeOnly, setFreeOnly] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Fix: blur search input when user scrolls — prevents iOS keyboard re-appearing on scroll
+  useEffect(() => {
+    const blurOnScroll = () => {
+      if (document.activeElement === searchRef.current) {
+        searchRef.current?.blur();
+      }
+    };
+    window.addEventListener("scroll", blurOnScroll, { passive: true });
+    window.addEventListener("touchmove", blurOnScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", blurOnScroll);
+      window.removeEventListener("touchmove", blurOnScroll);
+    };
+  }, []);
 
   const fetchCourses = useCallback(() => {
     setLoading(true);
@@ -73,10 +89,18 @@ export default function Courses({ limit = 3 }: { limit?: number }) {
           <div className="relative">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-600" />
             <input
-              type="text"
+              ref={searchRef}
+              type="search"
+              inputMode="search"
+              enterKeyHint="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") searchRef.current?.blur(); }}
               placeholder="جستجو در دوره‌ها..."
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
               className="w-full rounded-xl border border-white/[0.06] bg-white/[0.03] py-2.5 pr-9 pl-4 text-sm text-ink-100 placeholder-ink-600 outline-none transition focus:border-white/[0.12]"
             />
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ArrowRight, Crown, Zap, Search, Globe, Lock, X, ExternalLink } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { ArrowRight, Crown, Zap, Search, Globe, Lock, X, ExternalLink, Wifi } from "lucide-react";
 import Link from "next/link";
 import { BottomNav } from "@/app/components/BottomNav";
 import { BottomSheet } from "@/app/components/BottomSheet";
@@ -82,8 +82,47 @@ function pill(active: boolean, colorActive = "rgba(52,211,153,0.18)", borderActi
   };
 }
 
+/* ── Ping Badge ────────────────────────────────────────────────────── */
+function PingBadge({ ping }: { ping?: PingResult }) {
+  if (!ping) return null;
+
+  if (ping.status === "loading") {
+    return (
+      <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{
+          width: 5, height: 5, borderRadius: "50%",
+          background: "rgba(110,231,183,0.3)",
+          display: "inline-block",
+          animation: "ping-pulse 1s ease-in-out infinite",
+        }} />
+        <span style={{ fontSize: 9.5, color: "rgba(232,239,234,0.25)" }}>در حال بررسی...</span>
+      </div>
+    );
+  }
+
+  if (!ping.ok || ping.ms < 0) {
+    return (
+      <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#f87171", display: "inline-block" }} />
+        <span style={{ fontSize: 9.5, color: "rgba(248,113,113,0.7)", fontWeight: 600 }}>بدون VPN وصل نمیشه</span>
+      </div>
+    );
+  }
+
+  const color = ping.ms < 500 ? "#34d399" : ping.ms < 1500 ? "#fde68a" : "#fb923c";
+  const label = ping.ms < 500 ? "سرعت عالی" : ping.ms < 1500 ? "سرعت متوسط" : "سرعت پایین";
+
+  return (
+    <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, display: "inline-block" }} />
+      <span style={{ fontSize: 9.5, color, fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: 9, color: "rgba(232,239,234,0.25)" }}>· {ping.ms} ms</span>
+    </div>
+  );
+}
+
 /* ── Tool Detail Sheet ─────────────────────────────────────────────── */
-function ToolDetailSheet({ tool, onClose }: { tool: Tool; onClose: () => void }) {
+function ToolDetailSheet({ tool, onClose, ping }: { tool: Tool; onClose: () => void; ping?: PingResult }) {
   const diff  = DIFFICULTY_LABEL[tool.difficulty || ""] || tool.level || "";
   const price = PRICING_LABEL[tool.pricing_model || ""] || "";
   const isFree = tool.pricing_model === "free" || tool.pricing_model === "freemium";
@@ -136,16 +175,19 @@ function ToolDetailSheet({ tool, onClose }: { tool: Tool; onClose: () => void })
             border: `1px solid ${isFree ? "rgba(16,185,129,0.2)" : "rgba(250,204,21,0.2)"}`,
           }}>{price}</span>
         )}
-        <span style={{
-          fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 8,
-          display: "flex", alignItems: "center", gap: 5,
-          background: canAccess ? "rgba(52,211,153,0.08)" : "rgba(250,204,21,0.08)",
-          color: canAccess ? "#34d399" : "#fde68a",
-          border: `1px solid ${canAccess ? "rgba(52,211,153,0.2)" : "rgba(250,204,21,0.2)"}`,
-        }}>
-          {canAccess ? <Globe size={11} /> : <Lock size={11} strokeWidth={1.8} />}
-          {canAccess ? "بدون VPN" : "نیاز به VPN"}
-        </span>
+        {/* Live ping badge in detail sheet */}
+        {ping && ping.status === "done" && (
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 8,
+            display: "flex", alignItems: "center", gap: 5,
+            background: ping.ok ? "rgba(52,211,153,0.08)" : "rgba(248,113,113,0.08)",
+            color: ping.ok ? (ping.ms < 500 ? "#34d399" : ping.ms < 1500 ? "#fde68a" : "#fb923c") : "#f87171",
+            border: `1px solid ${ping.ok ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)"}`,
+          }}>
+            <Wifi size={11} />
+            {ping.ok ? `${ping.ms} ms از ایران` : "قابل دسترس نیست"}
+          </span>
+        )}
       </div>
 
       {/* Description */}
@@ -212,6 +254,8 @@ function ToolDetailSheet({ tool, onClose }: { tool: Tool; onClose: () => void })
   );
 }
 
+type PingResult = { ms: number; ok: boolean; status: "loading" | "done" };
+
 export default function ToolsPage() {
   const [tools, setTools]         = useState<Tool[]>([]);
   const [total, setTotal]         = useState(0);
@@ -222,6 +266,52 @@ export default function ToolsPage() {
   const [iranOnly, setIranOnly]   = useState(false);
   const [query, setQuery]         = useState("");   // debounced search
   const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
+  const [pings, setPings] = useState<Record<string, PingResult>>({});
+  const pingQueue = useRef<string[]>([]);
+  const pingingRef = useRef(false);
+
+  const runPingQueue = useCallback(async () => {
+    if (pingingRef.current) return;
+    pingingRef.current = true;
+    while (pingQueue.current.length > 0) {
+      // Take up to 3 at a time
+      const batch = pingQueue.current.splice(0, 3);
+      await Promise.all(batch.map(async (url) => {
+        try {
+          const res = await fetch(`/api/ping?url=${encodeURIComponent(url)}`);
+          const data = await res.json();
+          setPings((prev) => ({ ...prev, [url]: { ms: data.ms, ok: data.ok, status: "done" } }));
+        } catch {
+          setPings((prev) => ({ ...prev, [url]: { ms: -1, ok: false, status: "done" } }));
+        }
+      }));
+    }
+    pingingRef.current = false;
+  }, []);
+
+  // Kick off pings when tools load
+  useEffect(() => {
+    if (tools.length === 0) return;
+    const urlsWithPing = tools
+      .filter((t) => t.url && !pings[t.url])
+      .map((t) => t.url as string)
+      .slice(0, 25); // limit to first 25
+
+    if (urlsWithPing.length === 0) return;
+
+    // Mark all as loading
+    setPings((prev) => {
+      const next = { ...prev };
+      urlsWithPing.forEach((url) => {
+        if (!next[url]) next[url] = { ms: 0, ok: false, status: "loading" };
+      });
+      return next;
+    });
+
+    pingQueue.current = [...urlsWithPing];
+    runPingQueue();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tools]);
 
   const hasActiveFilter = category !== "همه" || difficulty !== "" || iranOnly || search !== "";
 
@@ -260,7 +350,10 @@ export default function ToolsPage() {
         fontFamily: "'Vazirmatn', sans-serif",
       }}
     >
-      <style>{`@keyframes shimmer{0%{opacity:.4}50%{opacity:.8}100%{opacity:.4}}`}</style>
+      <style>{`
+        @keyframes shimmer{0%{opacity:.4}50%{opacity:.8}100%{opacity:.4}}
+        @keyframes ping-pulse{0%,100%{opacity:.3}50%{opacity:1}}
+      `}</style>
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <div style={{
@@ -423,7 +516,7 @@ export default function ToolsPage() {
               const diff = DIFFICULTY_LABEL[tool.difficulty || ""] || tool.level || "";
               const price = PRICING_LABEL[tool.pricing_model || ""] || "";
               const isFree = tool.pricing_model === "free" || tool.pricing_model === "freemium";
-              const canAccess = tool.is_iran_accessible;
+              const ping = tool.url ? pings[tool.url] : undefined;
 
               return (
                 <button
@@ -449,6 +542,8 @@ export default function ToolsPage() {
                     }}>
                       {tool.tagline || tool.use || (tool.use_cases || []).join("، ")}
                     </div>
+                    {/* Ping badge */}
+                    <PingBadge ping={ping} />
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0 }}>
@@ -470,11 +565,6 @@ export default function ToolsPage() {
                         {price}
                       </span>
                     )}
-                    <span style={{ lineHeight: 1, display: "flex" }}>
-                      {canAccess
-                        ? <Globe size={12} color="rgba(52,211,153,0.55)" />
-                        : <Lock size={12} color="rgba(250,204,21,0.4)" strokeWidth={1.8} />}
-                    </span>
                   </div>
                 </button>
               );
@@ -515,7 +605,11 @@ export default function ToolsPage() {
       {/* ── Tool Detail Sheet ──────────────────────────────────────── */}
       <BottomSheet open={!!selectedTool} onClose={() => setSelectedTool(null)} maxHeight="88dvh">
         {selectedTool && (
-          <ToolDetailSheet tool={selectedTool} onClose={() => setSelectedTool(null)} />
+          <ToolDetailSheet
+            tool={selectedTool}
+            onClose={() => setSelectedTool(null)}
+            ping={selectedTool.url ? pings[selectedTool.url] : undefined}
+          />
         )}
       </BottomSheet>
 

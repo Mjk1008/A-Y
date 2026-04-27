@@ -7,12 +7,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 
-// W8: table creation removed — referral tables are managed in lib/crawlers/db-migrate.ts
+/* ── Self-healing table creation ─────────────────────────────────── */
+async function ensureTables() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS referral_codes (
+      id           SERIAL PRIMARY KEY,
+      user_id      UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      code         TEXT UNIQUE NOT NULL,
+      used_count   INT DEFAULT 0,
+      reward_given INT DEFAULT 0,
+      created_at   TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS referral_uses (
+      id          SERIAL PRIMARY KEY,
+      referrer_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      referred_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      used_at     TIMESTAMPTZ DEFAULT NOW()
+    );
+  `).catch(() => {}); // ignore if already exists or FK constraint differs
+}
 
 /* ── GET: get (or generate) referral code ────────────────────────── */
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+
+  await ensureTables();
 
   // Check if user already has a code
   const existing = await pool.query(
@@ -52,6 +72,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+
+  await ensureTables();
 
   // W11: only new accounts (created within last 7 days) can apply a referral
   const userRes = await pool.query("SELECT created_at FROM users WHERE id=$1", [session.id]);
