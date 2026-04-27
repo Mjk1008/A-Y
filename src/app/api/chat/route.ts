@@ -35,7 +35,13 @@ function buildCareerSystemPrompt(
   analysis: Record<string, unknown> | null
 ): string {
   const nickname = (profile.nickname as string) || (profile.full_name as string) || "کاربر";
-  const skills   = Array.isArray(profile.skills) ? (profile.skills as string[]).join("، ") : "";
+
+  // Use skill_levels (with proficiency) if available, otherwise plain skills
+  const LEVEL_FA: Record<string, string> = { beginner: "مبتدی", intermediate: "متوسط", expert: "حرفه‌ای" };
+  const skillLevels = profile.skill_levels as Array<{ name: string; level: string }> | null;
+  const skills = skillLevels && Array.isArray(skillLevels) && skillLevels.length > 0
+    ? skillLevels.map((s) => `${s.name} (${LEVEL_FA[s.level] ?? s.level})`).join("، ")
+    : Array.isArray(profile.skills) ? (profile.skills as string[]).join("، ") : "";
 
   let ctx = `تو "مسیریاب" هستی — دستیار هوشمند AI در اپلیکیشن A-Y که به ${nickname} کمک می‌کنه مسیر شغلی‌اش رو بهتر بسازه.
 

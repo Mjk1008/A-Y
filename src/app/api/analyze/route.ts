@@ -81,6 +81,7 @@ export async function POST() {
       industry: profile.industry,
       years_experience: profile.years_experience,
       skills: profile.skills ?? [],
+      skill_levels: Array.isArray(profile.skill_levels) ? profile.skill_levels : undefined,
       bio: profile.bio ?? undefined,
       resume_text: resume?.parsed_text ?? undefined,
       plan: planCast,

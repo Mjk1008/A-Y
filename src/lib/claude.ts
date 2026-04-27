@@ -12,6 +12,7 @@ export type ProfileInput = {
   industry: string;
   years_experience: number;
   skills: string[];
+  skill_levels?: Array<{ name: string; level: string }>;
   bio?: string;
   resume_text?: string;
   plan: "free" | "pro" | "max";
@@ -49,13 +50,18 @@ const SYSTEM_PROMPT = `شما یک مشاور حرفه‌ای هستید که ب
 6. برای کاربر Free حداکثر ۳ ابزار، برای Pro حداقل ۸ ابزار.`;
 
 function buildUserPrompt(p: ProfileInput): string {
+  const LEVEL_FA: Record<string, string> = { beginner: "مبتدی", intermediate: "متوسط", expert: "حرفه‌ای" };
+  const skillsLine = p.skill_levels && p.skill_levels.length > 0
+    ? p.skill_levels.map((s) => `${s.name} (${LEVEL_FA[s.level] ?? s.level})`).join("، ")
+    : p.skills.join("، ");
+
   return `پروفایل کاربر:
 - نام: ${p.full_name}
 - سن: ${p.age ?? "نامشخص"}
 - عنوان شغلی: ${p.job_title}
 - صنعت: ${p.industry}
 - سال‌های تجربه: ${p.years_experience}
-- مهارت‌ها: ${p.skills.join("، ")}
+- مهارت‌ها: ${skillsLine}
 ${p.bio ? `- درباره: ${p.bio}` : ""}
 ${p.resume_text ? `\n--- متن رزومه ---\n${p.resume_text.slice(0, 6000)}\n--- پایان رزومه ---` : ""}
 

@@ -30,15 +30,21 @@ export async function POST(req: NextRequest) {
       industry,
       years_experience,
       skills,
+      skill_levels,
       bio,
       resume_parsed_text,
     } = body;
 
+    // Ensure skill_levels column exists (idempotent)
+    await pool.query(
+      `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS skill_levels JSONB`
+    ).catch(() => {});
+
     // Upsert profile
     await pool.query(
       `INSERT INTO profiles
-         (user_id, nickname, full_name, age, job_title, industry, years_experience, skills, bio, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+         (user_id, nickname, full_name, age, job_title, industry, years_experience, skills, skill_levels, bio, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
        ON CONFLICT (user_id) DO UPDATE SET
          nickname          = COALESCE(EXCLUDED.nickname, profiles.nickname),
          full_name         = COALESCE(EXCLUDED.full_name, profiles.full_name),
@@ -47,6 +53,7 @@ export async function POST(req: NextRequest) {
          industry          = COALESCE(EXCLUDED.industry, profiles.industry),
          years_experience  = COALESCE(EXCLUDED.years_experience, profiles.years_experience),
          skills            = COALESCE(EXCLUDED.skills, profiles.skills),
+         skill_levels      = COALESCE(EXCLUDED.skill_levels, profiles.skill_levels),
          bio               = COALESCE(EXCLUDED.bio, profiles.bio),
          updated_at        = now()`,
       [
@@ -58,6 +65,7 @@ export async function POST(req: NextRequest) {
         industry ?? null,
         years_experience ?? null,
         skills ?? null,
+        skill_levels ? JSON.stringify(skill_levels) : null,
         bio ?? null,
       ]
     );

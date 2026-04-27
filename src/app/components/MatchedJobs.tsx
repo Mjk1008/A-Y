@@ -1,8 +1,10 @@
 "use client";
 
-import { MapPin, ExternalLink, Clock, Search, Wifi, Bookmark } from "lucide-react";
+import { MapPin, ExternalLink, Clock, Search, Wifi, Bookmark, X } from "lucide-react";
 import { SkeletonList } from "@/app/components/LoadingStates";
 import { useEffect, useState, useCallback } from "react";
+import { BottomSheet } from "@/app/components/BottomSheet";
+import { ExternalLinkGuard } from "@/app/components/ExternalLinkGuard";
 
 interface Job {
   id: string;
@@ -34,12 +36,168 @@ function calcMatchPct(jobSkills: string[], userSkills: string[]): number | null 
   return Math.min(99, Math.round((matched / jSet.length) * 100));
 }
 
+/* ── Job Detail Sheet ──────────────────────────────────────────────── */
+function JobDetailSheet({
+  job, userSkills, onClose,
+}: {
+  job: Job;
+  userSkills: string[];
+  onClose: () => void;
+}) {
+  const [saved, setSaved] = useState(false);
+  const src = SOURCES[job.source] ?? { label: job.source };
+  const timeAgo = job.posted_at ? new Date(job.posted_at).toLocaleDateString("fa-IR") : "";
+  const matchPct = calcMatchPct(job.skills ?? [], userSkills);
+
+  return (
+    <div dir="rtl" style={{ fontFamily: "'Vazirmatn', sans-serif", padding: "0 18px 24px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1, minWidth: 0 }}>
+          {/* Company logo */}
+          <div style={{
+            width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+            background: "linear-gradient(135deg, rgba(52,211,153,0.22), rgba(16,185,129,0.1))",
+            border: "1px solid rgba(110,231,183,0.3)",
+            display: "grid", placeItems: "center",
+            fontWeight: 900, fontSize: 22, color: "#6ee7b7",
+          }}>
+            {job.company?.charAt(0) ?? "؟"}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 900, fontSize: 17, lineHeight: 1.4, color: "#e8efea" }}>{job.title}</div>
+            <div style={{ fontSize: 12.5, color: "rgba(232,239,234,0.6)", marginTop: 3, fontWeight: 600 }}>
+              {job.company}
+              <span style={{ color: "rgba(232,239,234,0.28)", margin: "0 6px" }}>·</span>
+              {src.label}
+            </div>
+          </div>
+        </div>
+
+        {/* Close */}
+        <button
+          onClick={onClose}
+          aria-label="بستن"
+          style={{
+            width: 32, height: 32, borderRadius: 10, flexShrink: 0, marginRight: 6,
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
+            display: "grid", placeItems: "center", cursor: "pointer",
+          }}
+        >
+          <X size={14} color="rgba(232,239,234,0.6)" />
+        </button>
+      </div>
+
+      {/* Match gauge */}
+      {matchPct !== null && (
+        <div style={{
+          padding: "10px 14px", borderRadius: 12, marginBottom: 14,
+          background: matchPct >= 85
+            ? "rgba(52,211,153,0.08)"
+            : matchPct >= 70
+              ? "rgba(250,204,21,0.08)"
+              : "rgba(139,92,246,0.08)",
+          border: `1px solid ${matchPct >= 85 ? "rgba(52,211,153,0.25)" : matchPct >= 70 ? "rgba(250,204,21,0.25)" : "rgba(139,92,246,0.25)"}`,
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <MatchGauge pct={matchPct} size={40} />
+          <div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "#e8efea" }}>
+              {matchPct >= 85 ? "تطابق بالا" : matchPct >= 70 ? "تطابق متوسط" : "تطابق پایه"}
+            </div>
+            <div style={{ fontSize: 11, color: "rgba(232,239,234,0.45)", marginTop: 2 }}>
+              بر اساس مهارت‌های پروفایل تو
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Meta */}
+      <div style={{
+        display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14,
+        padding: "10px 14px", borderRadius: 12,
+        background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)",
+      }}>
+        {job.location && (
+          <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "rgba(232,239,234,0.6)" }}>
+            <MapPin size={12} color="rgba(110,231,183,0.6)" />
+            {job.location}
+          </span>
+        )}
+        {job.is_remote && (
+          <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#6ee7b7", fontWeight: 600 }}>
+            <Wifi size={12} color="#6ee7b7" />
+            دورکاری
+          </span>
+        )}
+        {timeAgo && (
+          <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "rgba(232,239,234,0.45)" }}>
+            <Clock size={12} />
+            {timeAgo}
+          </span>
+        )}
+      </div>
+
+      {/* Skills */}
+      {job.skills?.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(232,239,234,0.3)", letterSpacing: 2, marginBottom: 8 }}>مهارت‌های موردنیاز</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            {job.skills.map((t) => {
+              const norm = (s: string) => s.toLowerCase().trim();
+              const isMatch = userSkills.some((us) => norm(us).includes(norm(t)) || norm(t).includes(norm(us)));
+              return (
+                <span key={t} style={{
+                  padding: "4px 10px", borderRadius: 8,
+                  background: isMatch ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${isMatch ? "rgba(52,211,153,0.3)" : "rgba(110,231,183,0.12)"}`,
+                  fontSize: 11.5, fontWeight: 600,
+                  color: isMatch ? "#34d399" : "rgba(232,239,234,0.6)",
+                }}>{t}</span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 10 }}>
+        {job.url && (
+          <ExternalLinkGuard href={job.url} siteName={src.label} style={{ flex: 1, display: "block" }}>
+            <div style={{
+              width: "100%", padding: "13px 0", borderRadius: 14, textAlign: "center",
+              background: "rgba(16,185,129,0.14)", border: "1px solid rgba(110,231,183,0.3)",
+              fontSize: 13, fontWeight: 800, color: "#6ee7b7",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+            }}>
+              درخواست در {src.label}
+              <ExternalLink size={13} />
+            </div>
+          </ExternalLinkGuard>
+        )}
+        <button
+          onClick={() => setSaved(!saved)}
+          style={{
+            width: 46, height: 46, borderRadius: 12, flexShrink: 0,
+            background: saved ? "rgba(16,185,129,0.18)" : "rgba(255,255,255,0.04)",
+            border: `1px solid ${saved ? "rgba(110,231,183,0.4)" : "rgba(110,231,183,0.12)"}`,
+            cursor: "pointer", display: "grid", placeItems: "center",
+          }}
+        >
+          <Bookmark size={16} color={saved ? "#6ee7b7" : "rgba(232,239,234,0.5)"} fill={saved ? "#6ee7b7" : "none"} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function MatchedJobs({ limit = 3, userSkills = [] }: { limit?: number; userSkills?: string[] }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [remote, setRemote] = useState(false);
   const [activeFilter, setActiveFilter] = useState(0);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   const fetchJobs = useCallback(() => {
     setLoading(true);
@@ -139,7 +297,13 @@ export default function MatchedJobs({ limit = 3, userSkills = [] }: { limit?: nu
       ) : jobs.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {jobs.map((job, idx) => (
-            <JobCard key={job.id} job={job} rank={idx} userSkills={userSkills} />
+            <JobCard
+              key={job.id}
+              job={job}
+              rank={idx}
+              userSkills={userSkills}
+              onSelect={() => setSelectedJob(job)}
+            />
           ))}
         </div>
       ) : (
@@ -158,6 +322,13 @@ export default function MatchedJobs({ limit = 3, userSkills = [] }: { limit?: nu
           </div>
         </div>
       )}
+
+      {/* Job Detail Sheet */}
+      <BottomSheet open={!!selectedJob} onClose={() => setSelectedJob(null)} maxHeight="90dvh">
+        {selectedJob && (
+          <JobDetailSheet job={selectedJob} userSkills={userSkills} onClose={() => setSelectedJob(null)} />
+        )}
+      </BottomSheet>
     </div>
   );
 }
@@ -189,19 +360,25 @@ function MatchGauge({ pct, size = 44 }: { pct: number; size?: number }) {
   );
 }
 
-function JobCard({ job, rank, userSkills }: { job: Job; rank: number; userSkills: string[] }) {
-  const [saved, setSaved] = useState(false);
+function JobCard({
+  job, rank, userSkills, onSelect,
+}: {
+  job: Job; rank: number; userSkills: string[]; onSelect: () => void;
+}) {
   const src = SOURCES[job.source] ?? { label: job.source };
   const timeAgo = job.posted_at ? new Date(job.posted_at).toLocaleDateString("fa-IR") : "";
   const matchPct = calcMatchPct(job.skills ?? [], userSkills);
 
   return (
-    <article style={{
-      padding: 14, borderRadius: 16,
-      background: "linear-gradient(180deg, rgba(31,46,40,0.6) 0%, rgba(18,30,24,0.5) 100%)",
-      border: "1px solid rgba(110,231,183,0.14)",
-      position: "relative", overflow: "hidden",
-    }}>
+    <article
+      onClick={onSelect}
+      style={{
+        padding: 14, borderRadius: 16, cursor: "pointer",
+        background: "linear-gradient(180deg, rgba(31,46,40,0.6) 0%, rgba(18,30,24,0.5) 100%)",
+        border: "1px solid rgba(110,231,183,0.14)",
+        position: "relative", overflow: "hidden",
+      }}
+    >
       {/* Header row */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         {/* Company logo */}
@@ -256,51 +433,31 @@ function JobCard({ job, rank, userSkills }: { job: Job; rank: number; userSkills
             {timeAgo}
           </span>
         )}
+        {/* Tap hint */}
+        <span style={{ marginRight: "auto", fontSize: 10, color: "rgba(110,231,183,0.3)", display: "flex", alignItems: "center", gap: 3 }}>
+          جزئیات ←
+        </span>
       </div>
 
-      {/* Skills */}
+      {/* Skills preview */}
       {job.skills?.length > 0 && (
         <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {job.skills.slice(0, 5).map((t) => (
+          {job.skills.slice(0, 4).map((t) => (
             <span key={t} style={{
               padding: "3px 8px", borderRadius: 6,
               background: "rgba(255,255,255,0.04)", border: "1px solid rgba(110,231,183,0.14)",
               fontSize: 10.5, color: "rgba(232,239,234,0.65)", fontWeight: 600,
             }}>{t}</span>
           ))}
+          {job.skills.length > 4 && (
+            <span style={{
+              padding: "3px 8px", borderRadius: 6,
+              background: "rgba(255,255,255,0.02)", border: "1px solid rgba(110,231,183,0.07)",
+              fontSize: 10.5, color: "rgba(232,239,234,0.3)", fontWeight: 600,
+            }}>+{job.skills.length - 4}</span>
+          )}
         </div>
       )}
-
-      {/* Actions */}
-      <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-        {job.url && (
-          <a
-            href={job.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              flex: 1, padding: "9px 0", borderRadius: 10, textAlign: "center",
-              background: "rgba(16,185,129,0.14)", border: "1px solid rgba(110,231,183,0.3)",
-              fontSize: 12, fontWeight: 700, color: "#6ee7b7",
-              textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-            }}
-          >
-            درخواست در {src.label}
-            <ExternalLink size={11} />
-          </a>
-        )}
-        <button
-          onClick={() => setSaved(!saved)}
-          style={{
-            width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-            background: saved ? "rgba(16,185,129,0.18)" : "rgba(255,255,255,0.04)",
-            border: `1px solid ${saved ? "rgba(110,231,183,0.4)" : "rgba(110,231,183,0.12)"}`,
-            cursor: "pointer", display: "grid", placeItems: "center",
-          }}
-        >
-          <Bookmark size={14} color={saved ? "#6ee7b7" : "rgba(232,239,234,0.5)"} fill={saved ? "#6ee7b7" : "none"} />
-        </button>
-      </div>
     </article>
   );
 }

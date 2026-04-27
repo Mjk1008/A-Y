@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from "react";
 import {
   ArrowRight, RefreshCw, Sparkles, ExternalLink,
-  Clock, Zap, ChevronDown,
+  Clock, Zap, ChevronDown, X,
 } from "lucide-react";
 import Link from "next/link";
 import { BottomNav } from "@/app/components/BottomNav";
+import { BottomSheet } from "@/app/components/BottomSheet";
+import { ExternalLinkGuard } from "@/app/components/ExternalLinkGuard";
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 interface DigestItem    { title: string; body: string }
@@ -101,121 +103,208 @@ function NewsImage({
   );
 }
 
-/* ── Hero Card ─────────────────────────────────────────────────────── */
-function HeroCard({ item }: { item: NewsItem }) {
+/* ── News Detail Sheet ─────────────────────────────────────────────── */
+function NewsDetailSheet({ item, onClose }: { item: NewsItem; onClose: () => void }) {
   const cfg = srcCfg(item.source_key);
   return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{
-        display: "block", textDecoration: "none", marginBottom: 10,
-        borderRadius: 20, overflow: "hidden",
-        background: "rgba(8,14,11,0.8)", border: "1px solid rgba(110,231,183,0.09)",
-      }}
-    >
-      {/* Image zone */}
-      <div style={{ height: 200, position: "relative", overflow: "hidden" }}>
-        <NewsImage src={item.image_url} sourceKey={item.source_key} alt={item.title} width="100%" height={200} />
-        {/* Gradient overlay */}
+    <div dir="rtl" style={{ fontFamily: "'Vazirmatn', sans-serif" }}>
+      {/* Image */}
+      <div style={{ position: "relative", height: 190, overflow: "hidden" }}>
+        <NewsImage src={item.image_url} sourceKey={item.source_key} alt={item.title} width="100%" height={190} />
         <div style={{
           position: "absolute", inset: 0,
-          background: "linear-gradient(to top, rgba(2,3,6,0.93) 0%, rgba(2,3,6,0.35) 50%, transparent 100%)",
+          background: "linear-gradient(to top, rgba(12,20,16,0.95) 0%, rgba(12,20,16,0.2) 60%, transparent 100%)",
         }} />
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          aria-label="بستن"
+          style={{
+            position: "absolute", top: 12, left: 12,
+            width: 32, height: 32, borderRadius: 10,
+            background: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            display: "grid", placeItems: "center", cursor: "pointer",
+          }}
+        >
+          <X size={14} color="rgba(232,239,234,0.8)" />
+        </button>
         {/* Source + time badge */}
         <div style={{
           position: "absolute", bottom: 12, right: 14,
           display: "flex", alignItems: "center", gap: 6,
         }}>
           <span style={{
-            fontSize: 9.5, fontWeight: 800, padding: "2px 8px", borderRadius: 6,
+            fontSize: 10, fontWeight: 800, padding: "2px 9px", borderRadius: 6,
             background: cfg.bg, color: cfg.color, backdropFilter: "blur(8px)",
             border: `1px solid ${cfg.color}44`,
           }}>{item.source_name}</span>
-          <span style={{ fontSize: 9.5, color: "rgba(255,255,255,0.45)", display: "flex", alignItems: "center", gap: 3 }}>
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", display: "flex", alignItems: "center", gap: 3 }}>
             <Clock size={9} />{relativeTime(item.published_at)}
           </span>
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ padding: "12px 14px 14px" }}>
-        <div style={{ fontSize: 15.5, fontWeight: 800, color: "#e8efea", lineHeight: 1.5, marginBottom: item.summary ? 7 : 0, letterSpacing: -0.3 }}>
+      <div style={{ padding: "16px 18px 20px" }}>
+        <h2 style={{
+          fontSize: 17, fontWeight: 900, lineHeight: 1.55, margin: "0 0 12px",
+          color: "#e8efea", letterSpacing: -0.3,
+        }}>
           {item.title}
-        </div>
+        </h2>
+
         {item.summary && (
-          <div style={{ fontSize: 12, color: "rgba(232,239,234,0.44)", lineHeight: 1.65, overflow: "hidden", maxHeight: "3.3em" }}>
+          <p style={{
+            fontSize: 13, color: "rgba(232,239,234,0.58)", lineHeight: 1.8,
+            margin: "0 0 20px",
+          }}>
             {item.summary}
-          </div>
+          </p>
         )}
-        <div style={{ marginTop: 9, display: "flex", alignItems: "center", gap: 5 }}>
-          <ExternalLink size={11} color={cfg.color} />
-          <span style={{ fontSize: 11, color: cfg.color, fontWeight: 600 }}>بخوان</span>
+
+        {/* CTA */}
+        <ExternalLinkGuard
+          href={item.url}
+          siteName={item.source_name}
+          style={{ width: "100%", display: "block" }}
+        >
+          <div style={{
+            width: "100%", padding: "13px 0", borderRadius: 14,
+            background: cfg.bg,
+            border: `1px solid ${cfg.color}55`,
+            fontSize: 13, fontWeight: 800, color: cfg.color,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+          }}>
+            <ExternalLink size={14} />
+            خوندن در {item.source_name}
+          </div>
+        </ExternalLinkGuard>
+      </div>
+    </div>
+  );
+}
+
+/* ── Hero Card ─────────────────────────────────────────────────────── */
+function HeroCard({ item, onSelect }: { item: NewsItem; onSelect: () => void }) {
+  const cfg = srcCfg(item.source_key);
+  return (
+    <button
+      onClick={onSelect}
+      style={{
+        display: "block", width: "100%", textAlign: "inherit",
+        background: "none", border: "none", padding: 0, cursor: "pointer",
+        marginBottom: 10,
+      }}
+    >
+      <div style={{
+        borderRadius: 20, overflow: "hidden",
+        background: "rgba(8,14,11,0.8)", border: "1px solid rgba(110,231,183,0.09)",
+      }}>
+        {/* Image zone */}
+        <div style={{ height: 200, position: "relative", overflow: "hidden" }}>
+          <NewsImage src={item.image_url} sourceKey={item.source_key} alt={item.title} width="100%" height={200} />
+          {/* Gradient overlay */}
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(to top, rgba(2,3,6,0.93) 0%, rgba(2,3,6,0.35) 50%, transparent 100%)",
+          }} />
+          {/* Source + time badge */}
+          <div style={{
+            position: "absolute", bottom: 12, right: 14,
+            display: "flex", alignItems: "center", gap: 6,
+          }}>
+            <span style={{
+              fontSize: 9.5, fontWeight: 800, padding: "2px 8px", borderRadius: 6,
+              background: cfg.bg, color: cfg.color, backdropFilter: "blur(8px)",
+              border: `1px solid ${cfg.color}44`,
+            }}>{item.source_name}</span>
+            <span style={{ fontSize: 9.5, color: "rgba(255,255,255,0.45)", display: "flex", alignItems: "center", gap: 3 }}>
+              <Clock size={9} />{relativeTime(item.published_at)}
+            </span>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: "12px 14px 14px" }}>
+          <div style={{ fontSize: 15.5, fontWeight: 800, color: "#e8efea", lineHeight: 1.5, marginBottom: item.summary ? 7 : 0, letterSpacing: -0.3 }}>
+            {item.title}
+          </div>
+          {item.summary && (
+            <div style={{ fontSize: 12, color: "rgba(232,239,234,0.44)", lineHeight: 1.65, overflow: "hidden", maxHeight: "3.3em" }}>
+              {item.summary}
+            </div>
+          )}
+          <div style={{ marginTop: 9, display: "flex", alignItems: "center", gap: 5 }}>
+            <ExternalLink size={11} color={cfg.color} />
+            <span style={{ fontSize: 11, color: cfg.color, fontWeight: 600 }}>بخوان</span>
+          </div>
         </div>
       </div>
-    </a>
+    </button>
   );
 }
 
 /* ── Medium Card (2-column grid) ───────────────────────────────────── */
-function MediumCard({ item }: { item: NewsItem }) {
+function MediumCard({ item, onSelect }: { item: NewsItem; onSelect: () => void }) {
   const cfg = srcCfg(item.source_key);
   return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
+    <button
+      onClick={onSelect}
       style={{
-        display: "flex", flexDirection: "column", textDecoration: "none",
-        borderRadius: 16, overflow: "hidden",
-        background: "rgba(8,14,11,0.8)", border: "1px solid rgba(110,231,183,0.07)",
+        display: "flex", flexDirection: "column", width: "100%",
+        background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "inherit",
       }}
     >
-      {/* Image */}
-      <div style={{ height: 112, position: "relative", overflow: "hidden", flexShrink: 0 }}>
-        <NewsImage src={item.image_url} sourceKey={item.source_key} alt={item.title} width="100%" height={112} />
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(to top, rgba(2,3,6,0.65) 0%, transparent 55%)",
-        }} />
-      </div>
-      {/* Content */}
-      <div style={{ padding: "9px 10px 11px", flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
-        <span style={{
-          alignSelf: "flex-start", fontSize: 8.5, fontWeight: 800, padding: "1.5px 6px", borderRadius: 5,
-          background: cfg.bg, color: cfg.color,
-        }}>{item.source_name}</span>
-        <div style={{
-          fontSize: 12, fontWeight: 700, color: "#e8efea", lineHeight: 1.45, flex: 1,
-          overflow: "hidden", maxHeight: "3.6em",
-        }}>
-          {item.title}
+      <div style={{
+        display: "flex", flexDirection: "column",
+        borderRadius: 16, overflow: "hidden",
+        background: "rgba(8,14,11,0.8)", border: "1px solid rgba(110,231,183,0.07)",
+        height: "100%",
+      }}>
+        {/* Image */}
+        <div style={{ height: 112, position: "relative", overflow: "hidden", flexShrink: 0 }}>
+          <NewsImage src={item.image_url} sourceKey={item.source_key} alt={item.title} width="100%" height={112} />
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(to top, rgba(2,3,6,0.65) 0%, transparent 55%)",
+          }} />
         </div>
-        <div style={{ fontSize: 9.5, color: "rgba(232,239,234,0.28)", display: "flex", alignItems: "center", gap: 2 }}>
-          <Clock size={8} />{relativeTime(item.published_at)}
+        {/* Content */}
+        <div style={{ padding: "9px 10px 11px", flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
+          <span style={{
+            alignSelf: "flex-start", fontSize: 8.5, fontWeight: 800, padding: "1.5px 6px", borderRadius: 5,
+            background: cfg.bg, color: cfg.color,
+          }}>{item.source_name}</span>
+          <div style={{
+            fontSize: 12, fontWeight: 700, color: "#e8efea", lineHeight: 1.45, flex: 1,
+            overflow: "hidden", maxHeight: "3.6em",
+          }}>
+            {item.title}
+          </div>
+          <div style={{ fontSize: 9.5, color: "rgba(232,239,234,0.28)", display: "flex", alignItems: "center", gap: 2 }}>
+            <Clock size={8} />{relativeTime(item.published_at)}
+          </div>
         </div>
       </div>
-    </a>
+    </button>
   );
 }
 
 /* ── List Card (thumbnail + text) ──────────────────────────────────── */
-function ListCard({ item }: { item: NewsItem }) {
+function ListCard({ item, onSelect }: { item: NewsItem; onSelect: () => void }) {
   const cfg = srcCfg(item.source_key);
   return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
+    <button
+      onClick={onSelect}
       style={{
-        display: "flex", gap: 12, textDecoration: "none",
-        padding: "12px 0",
+        display: "flex", gap: 12, width: "100%", textAlign: "inherit",
+        background: "none", border: "none", padding: "12px 0", cursor: "pointer",
         borderBottom: "1px solid rgba(255,255,255,0.042)",
         alignItems: "flex-start",
       }}
     >
-      {/* Thumbnail (right side in RTL because first in DOM) */}
+      {/* Thumbnail */}
       <div style={{ borderRadius: 11, overflow: "hidden", flexShrink: 0 }}>
         <NewsImage src={item.image_url} sourceKey={item.source_key} alt={item.title} width={74} height={56} borderRadius={11} />
       </div>
@@ -234,7 +323,7 @@ function ListCard({ item }: { item: NewsItem }) {
           {item.title}
         </div>
       </div>
-    </a>
+    </button>
   );
 }
 
@@ -392,6 +481,7 @@ export default function MagazinePage() {
   const [crawling, setCrawling]     = useState(false);
   const [generating, setGenerating] = useState(false);
   const [filter, setFilter]         = useState<string>("all");
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
 
   async function load() {
     setLoading(true);
@@ -506,13 +596,11 @@ export default function MagazinePage() {
         {/* ── Loading skeletons ──────────────────────────────────────── */}
         {loading && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {/* Hero skeleton */}
             <div style={{
               height: 290, borderRadius: 20,
               background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.07)",
               animation: "shimmer 1.4s ease-in-out infinite",
             }} />
-            {/* Medium grid skeleton */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[160, 160].map((h, i) => (
                 <div key={i} style={{
@@ -522,7 +610,6 @@ export default function MagazinePage() {
                 }} />
               ))}
             </div>
-            {/* List skeletons */}
             {[72, 72, 72].map((h, i) => (
               <div key={i} style={{
                 height: h, borderRadius: 14,
@@ -590,19 +677,23 @@ export default function MagazinePage() {
             </div>
 
             {/* Hero card */}
-            {hero && <HeroCard item={hero} />}
+            {hero && <HeroCard item={hero} onSelect={() => setSelectedNews(hero)} />}
 
             {/* 2-col medium grid */}
             {medium.length > 0 && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-                {medium.map((item) => <MediumCard key={item.id} item={item} />)}
+                {medium.map((item) => (
+                  <MediumCard key={item.id} item={item} onSelect={() => setSelectedNews(item)} />
+                ))}
               </div>
             )}
 
             {/* List items */}
             {list.length > 0 && (
               <div>
-                {list.map((item) => <ListCard key={item.id} item={item} />)}
+                {list.map((item) => (
+                  <ListCard key={item.id} item={item} onSelect={() => setSelectedNews(item)} />
+                ))}
               </div>
             )}
 
@@ -659,6 +750,14 @@ export default function MagazinePage() {
         )}
 
       </div>
+
+      {/* ── News Detail Sheet ───────────────────────────────────────── */}
+      <BottomSheet open={!!selectedNews} onClose={() => setSelectedNews(null)} maxHeight="88dvh">
+        {selectedNews && (
+          <NewsDetailSheet item={selectedNews} onClose={() => setSelectedNews(null)} />
+        )}
+      </BottomSheet>
+
       <BottomNav />
     </div>
   );

@@ -58,21 +58,38 @@ export default function OnboardingPage() {
     job_title: "",
     industry: "",
     years_experience: "",
-    skills: [] as string[],
+    skills: [] as { name: string; level: string }[],
     skillInput: "",
     bio: "",
   });
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [pendingSkill, setPendingSkill] = useState(""); // waiting for level selection
+
+  const SKILL_LEVELS = [
+    { key: "beginner",     label: "مبتدی",   color: "#34d399", bg: "rgba(52,211,153,0.12)",  border: "rgba(52,211,153,0.3)"  },
+    { key: "intermediate", label: "متوسط",   color: "#fde68a", bg: "rgba(250,204,21,0.12)",  border: "rgba(250,204,21,0.3)"  },
+    { key: "expert",       label: "حرفه‌ای", color: "#c4b5fd", bg: "rgba(139,92,246,0.12)",  border: "rgba(139,92,246,0.3)"  },
+  ];
+
+  const LEVEL_LABEL: Record<string, string> = { beginner: "مبتدی", intermediate: "متوسط", expert: "حرفه‌ای" };
+  const LEVEL_COLOR: Record<string, string> = { beginner: "#34d399", intermediate: "#fde68a", expert: "#c4b5fd" };
 
   function addSkill() {
     const s = form.skillInput.trim();
-    if (s && !form.skills.includes(s)) {
-      setForm((f) => ({ ...f, skills: [...f.skills, s], skillInput: "" }));
+    if (s && !form.skills.some((x) => x.name === s)) {
+      setPendingSkill(s);
+      setForm((f) => ({ ...f, skillInput: "" }));
     }
   }
 
-  function removeSkill(s: string) {
-    setForm((f) => ({ ...f, skills: f.skills.filter((x) => x !== s) }));
+  function addSkillWithLevel(level: string) {
+    if (!pendingSkill) return;
+    setForm((f) => ({ ...f, skills: [...f.skills, { name: pendingSkill, level }] }));
+    setPendingSkill("");
+  }
+
+  function removeSkill(name: string) {
+    setForm((f) => ({ ...f, skills: f.skills.filter((x) => x.name !== name) }));
   }
 
   async function submit() {
@@ -106,7 +123,8 @@ export default function OnboardingPage() {
           job_title: form.job_title,
           industry: form.industry,
           years_experience: parseInt(form.years_experience || "0"),
-          skills: form.skills,
+          skills: form.skills.map((s) => s.name),
+          skill_levels: form.skills,
           bio: form.bio || null,
           resume_parsed_text: resumeParsedText ?? null,
         }),
@@ -465,26 +483,88 @@ export default function OnboardingPage() {
                     }}
                     className="input-field flex-1"
                     placeholder="مثلاً React، مدیریت تیم، SQL"
-                    autoFocus
+                    autoFocus={!pendingSkill}
                     autoComplete="off"
+                    disabled={!!pendingSkill}
                   />
                   <button
                     type="button"
                     onClick={addSkill}
+                    disabled={!!pendingSkill}
                     className="btn-ghost !px-4"
                   >
                     افزودن
                   </button>
                 </div>
 
+                {/* ── Level picker — shown after typing a skill name ── */}
+                {pendingSkill && (
+                  <div
+                    dir="rtl"
+                    style={{
+                      marginTop: 10, padding: "14px 16px", borderRadius: 14,
+                      background: "rgba(31,46,40,0.6)", border: "1px solid rgba(110,231,183,0.2)",
+                      fontFamily: "'Vazirmatn', sans-serif",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, color: "rgba(232,239,234,0.55)", marginBottom: 10 }}>
+                      برای{" "}
+                      <span style={{ color: "#e8efea", fontWeight: 700 }}>«{pendingSkill}»</span>
+                      {" "}سطح مهارتت چیه؟
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {SKILL_LEVELS.map(({ key, label, color, bg, border }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => addSkillWithLevel(key)}
+                          style={{
+                            flex: 1, padding: "9px 0", borderRadius: 10,
+                            background: bg, border: `1px solid ${border}`,
+                            color, fontSize: 12.5, fontWeight: 700,
+                            cursor: "pointer", fontFamily: "inherit",
+                            transition: "all 0.12s",
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPendingSkill("")}
+                      style={{
+                        marginTop: 8, width: "100%", fontSize: 11,
+                        color: "rgba(232,239,234,0.3)", background: "none", border: "none",
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      لغو
+                    </button>
+                  </div>
+                )}
+
                 {form.skills.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {form.skills.map((s) => (
-                      <span key={s} className="chip gap-1.5">
-                        {s}
+                      <span
+                        key={s.name}
+                        className="chip gap-1.5"
+                        style={{ alignItems: "center" }}
+                      >
+                        {s.name}
+                        {s.level && (
+                          <span style={{
+                            fontSize: 9, fontWeight: 800,
+                            color: LEVEL_COLOR[s.level] ?? "#6ee7b7",
+                            opacity: 0.8,
+                          }}>
+                            · {LEVEL_LABEL[s.level] ?? s.level}
+                          </span>
+                        )}
                         <button
                           type="button"
-                          onClick={() => removeSkill(s)}
+                          onClick={() => removeSkill(s.name)}
                           className="opacity-60 transition hover:opacity-100"
                         >
                           <X className="h-3 w-3" />

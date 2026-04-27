@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowRight, Crown, Zap, Search, Globe, Lock } from "lucide-react";
+import { ArrowRight, Crown, Zap, Search, Globe, Lock, X, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { BottomNav } from "@/app/components/BottomNav";
+import { BottomSheet } from "@/app/components/BottomSheet";
+import { ExternalLinkGuard } from "@/app/components/ExternalLinkGuard";
 
 interface Tool {
   id?: number;
@@ -80,6 +82,136 @@ function pill(active: boolean, colorActive = "rgba(52,211,153,0.18)", borderActi
   };
 }
 
+/* ── Tool Detail Sheet ─────────────────────────────────────────────── */
+function ToolDetailSheet({ tool, onClose }: { tool: Tool; onClose: () => void }) {
+  const diff  = DIFFICULTY_LABEL[tool.difficulty || ""] || tool.level || "";
+  const price = PRICING_LABEL[tool.pricing_model || ""] || "";
+  const isFree = tool.pricing_model === "free" || tool.pricing_model === "freemium";
+  const canAccess = tool.is_iran_accessible;
+  const cats = tool.categories || (tool.tag ? [tool.tag] : []);
+  const useCases = tool.use_cases || [];
+
+  return (
+    <div dir="rtl" style={{ fontFamily: "'Vazirmatn', sans-serif", padding: "0 18px 24px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <ToolInitial name={tool.name} size={52} />
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 18, color: "#e8efea" }}>{tool.name}</div>
+            {(tool.tagline || tool.use) && (
+              <div style={{ fontSize: 12, color: "rgba(232,239,234,0.5)", marginTop: 3 }}>
+                {tool.tagline || tool.use}
+              </div>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          aria-label="بستن"
+          style={{
+            width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
+            display: "grid", placeItems: "center", cursor: "pointer",
+          }}
+        >
+          <X size={14} color="rgba(232,239,234,0.6)" />
+        </button>
+      </div>
+
+      {/* Badges row */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 16 }}>
+        {diff && (
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 8,
+            background: "rgba(110,231,183,0.08)", color: "rgba(110,231,183,0.8)",
+            border: "1px solid rgba(110,231,183,0.15)",
+          }}>{diff}</span>
+        )}
+        {price && (
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 8,
+            background: isFree ? "rgba(16,185,129,0.12)" : "rgba(250,204,21,0.1)",
+            color: isFree ? "#34d399" : "#fde68a",
+            border: `1px solid ${isFree ? "rgba(16,185,129,0.2)" : "rgba(250,204,21,0.2)"}`,
+          }}>{price}</span>
+        )}
+        <span style={{
+          fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 8,
+          display: "flex", alignItems: "center", gap: 5,
+          background: canAccess ? "rgba(52,211,153,0.08)" : "rgba(250,204,21,0.08)",
+          color: canAccess ? "#34d399" : "#fde68a",
+          border: `1px solid ${canAccess ? "rgba(52,211,153,0.2)" : "rgba(250,204,21,0.2)"}`,
+        }}>
+          {canAccess ? <Globe size={11} /> : <Lock size={11} strokeWidth={1.8} />}
+          {canAccess ? "بدون VPN" : "نیاز به VPN"}
+        </span>
+      </div>
+
+      {/* Description */}
+      {(tool.description || tool.heroDesc) && (
+        <p style={{
+          fontSize: 13, color: "rgba(232,239,234,0.6)", lineHeight: 1.8,
+          margin: "0 0 16px",
+          padding: "12px 14px", borderRadius: 12,
+          background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)",
+        }}>
+          {tool.description || tool.heroDesc}
+        </p>
+      )}
+
+      {/* Categories */}
+      {cats.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(232,239,234,0.3)", letterSpacing: 2, marginBottom: 8 }}>دسته‌بندی</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {cats.map((c) => (
+              <span key={c} style={{
+                padding: "3px 10px", borderRadius: 6,
+                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(110,231,183,0.12)",
+                fontSize: 11, color: "rgba(232,239,234,0.6)", fontWeight: 600,
+              }}>{c}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Use cases */}
+      {useCases.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(232,239,234,0.3)", letterSpacing: 2, marginBottom: 8 }}>کاربردها</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {useCases.slice(0, 4).map((u, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "flex-start", gap: 8,
+                fontSize: 12.5, color: "rgba(232,239,234,0.6)", lineHeight: 1.5,
+              }}>
+                <span style={{ color: "#6ee7b7", fontSize: 14, lineHeight: 1 }}>·</span>
+                {u}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CTA */}
+      {tool.url && (
+        <ExternalLinkGuard href={tool.url} siteName={tool.name} style={{ width: "100%", display: "block" }}>
+          <div style={{
+            width: "100%", padding: "13px 0", borderRadius: 14,
+            background: "rgba(52,211,153,0.13)", border: "1px solid rgba(52,211,153,0.3)",
+            fontSize: 13, fontWeight: 800, color: "#34d399",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+          }}>
+            <ExternalLink size={14} />
+            رفتن به {tool.name}
+          </div>
+        </ExternalLinkGuard>
+      )}
+    </div>
+  );
+}
+
 export default function ToolsPage() {
   const [tools, setTools]         = useState<Tool[]>([]);
   const [total, setTotal]         = useState(0);
@@ -89,6 +221,7 @@ export default function ToolsPage() {
   const [difficulty, setDiff]     = useState("");
   const [iranOnly, setIranOnly]   = useState(false);
   const [query, setQuery]         = useState("");   // debounced search
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
 
   const hasActiveFilter = category !== "همه" || difficulty !== "" || iranOnly || search !== "";
 
@@ -293,19 +426,16 @@ export default function ToolsPage() {
               const canAccess = tool.is_iran_accessible;
 
               return (
-                <a
+                <button
                   key={tool.id || i}
-                  href={tool.url || "#"}
-                  target={tool.url ? "_blank" : undefined}
-                  rel="noopener noreferrer"
+                  onClick={() => setSelectedTool(tool)}
                   style={{
-                    display: "flex", alignItems: "center", gap: 12,
-                    padding: "13px 14px", borderRadius: 16, textDecoration: "none",
+                    display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "inherit",
+                    padding: "13px 14px", borderRadius: 16,
                     background: "rgba(31,46,40,0.5)", border: "1px solid rgba(110,231,183,0.09)",
+                    cursor: "pointer", fontFamily: "inherit",
                     transition: "border-color 0.15s, background 0.15s",
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(110,231,183,0.22)"; (e.currentTarget as HTMLAnchorElement).style.background = "rgba(31,46,40,0.7)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(110,231,183,0.09)"; (e.currentTarget as HTMLAnchorElement).style.background = "rgba(31,46,40,0.5)"; }}
                 >
                   <ToolInitial name={tool.name} size={44} />
 
@@ -340,16 +470,13 @@ export default function ToolsPage() {
                         {price}
                       </span>
                     )}
-                    <span
-                      title={canAccess ? "بدون VPN" : "نیاز به VPN"}
-                      style={{ lineHeight: 1, display: "flex" }}
-                    >
+                    <span style={{ lineHeight: 1, display: "flex" }}>
                       {canAccess
                         ? <Globe size={12} color="rgba(52,211,153,0.55)" />
                         : <Lock size={12} color="rgba(250,204,21,0.4)" strokeWidth={1.8} />}
                     </span>
                   </div>
-                </a>
+                </button>
               );
             })}
           </div>
@@ -384,6 +511,14 @@ export default function ToolsPage() {
       </div>
 
       <div style={{ height: 16 }} />
+
+      {/* ── Tool Detail Sheet ──────────────────────────────────────── */}
+      <BottomSheet open={!!selectedTool} onClose={() => setSelectedTool(null)} maxHeight="88dvh">
+        {selectedTool && (
+          <ToolDetailSheet tool={selectedTool} onClose={() => setSelectedTool(null)} />
+        )}
+      </BottomSheet>
+
       <BottomNav />
     </div>
   );
