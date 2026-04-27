@@ -28,6 +28,7 @@ interface MagazineData {
   content_json: DigestContent | null;
   fallback: boolean;
   news_items: NewsItem[];
+  last_fetched_at: string | null;
 }
 
 /* ── Source config ─────────────────────────────────────────────────── */
@@ -424,9 +425,10 @@ export default function MagazinePage() {
 
   useEffect(() => { load(); }, []);
 
-  const newsItems = data?.news_items ?? [];
-  const digest    = data?.content_json ?? null;
-  const hasNews   = newsItems.length > 0;
+  const newsItems     = data?.news_items ?? [];
+  const digest        = data?.content_json ?? null;
+  const hasNews       = newsItems.length > 0;
+  const lastFetchedAt = data?.last_fetched_at ?? null;
 
   const sources  = Array.from(new Set(newsItems.map((n) => n.source_key)));
   const filtered = filter === "all" ? newsItems : newsItems.filter((n) => n.source_key === filter);
@@ -469,9 +471,11 @@ export default function MagazinePage() {
             <div style={{ fontSize: 10, color: "rgba(165,180,252,0.5)", marginTop: 1 }}>
               {loading
                 ? "در حال بارگذاری..."
-                : data?.date
-                  ? formatDate(data.date) + (hasNews ? ` · ${newsItems.length} خبر` : "")
-                  : "اخبار ۴۸ ساعت اخیر"}
+                : lastFetchedAt
+                  ? `آخرین آپدیت: ${relativeTime(lastFetchedAt)}` + (hasNews ? ` · ${newsItems.length} خبر` : "")
+                  : data?.date
+                    ? formatDate(data.date) + (hasNews ? ` · ${newsItems.length} خبر` : "")
+                    : "اخبار ۴۸ ساعت اخیر"}
             </div>
           </div>
           <button

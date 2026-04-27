@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const dateParam  = req.nextUrl.searchParams.get("date");
   const targetDate = dateParam || new Date().toISOString().slice(0, 10);
 
-  const [digestRes, newsRes] = await Promise.all([
+  const [digestRes, newsRes, lastFetchedRes] = await Promise.all([
     pool.query("SELECT * FROM magazine_articles WHERE date=$1", [targetDate])
       .catch(() => ({ rows: [] })),
     pool.query(
@@ -27,10 +27,14 @@ export async function GET(req: NextRequest) {
        ORDER BY published_at DESC
        LIMIT 40`
     ).catch(() => ({ rows: [] })),
+    pool.query(
+      `SELECT MAX(fetched_at) AS last_fetched FROM ai_news_items`
+    ).catch(() => ({ rows: [{ last_fetched: null }] })),
   ]);
 
   const digest = digestRes.rows[0] ?? null;
   const newsItems = newsRes.rows ?? [];
+  const lastFetchedAt = lastFetchedRes.rows[0]?.last_fetched ?? null;
 
   // Return both — even if digest doesn't exist yet, news items show immediately
   return NextResponse.json({
@@ -39,6 +43,7 @@ export async function GET(req: NextRequest) {
     content_json: digest?.content_json ?? null,
     fallback: !digest,
     news_items: newsItems,
+    last_fetched_at: lastFetchedAt,
   });
 }
 
