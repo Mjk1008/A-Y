@@ -131,37 +131,6 @@ export default function VideoHero() {
             </Link>
           </div>
 
-          {/* Trust row */}
-          <div
-            className="animate-fade-up mt-8 flex items-center justify-center gap-5 opacity-60"
-            style={{ animationDelay: "0.7s", animationFillMode: "both" }}
-          >
-            <div className="flex">
-              {["ع", "س", "م", "ن"].map((c, i) => (
-                <div
-                  key={i}
-                  className="relative rounded-full"
-                  style={{
-                    marginInlineStart: i ? -8 : 0,
-                    width: 28, height: 28,
-                    background: `linear-gradient(135deg, ${[
-                      ["#10b981","#047857"],
-                      ["#eab308","#ca8a04"],
-                      ["#0891b2","#155e75"],
-                      ["#8b5cf6","#5b21b6"],
-                    ][i].join(",")})`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 11, fontWeight: 800, color: "#04110a",
-                  }}
-                >
-                  {c}
-                </div>
-              ))}
-            </div>
-            <span className="text-[12px]" style={{ color: "rgba(232,239,234,0.7)" }}>
-              +۲٬۴۰۰ متخصص ایرانی
-            </span>
-          </div>
         </div>
       </div>
 

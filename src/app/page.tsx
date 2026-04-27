@@ -95,11 +95,10 @@ function Nav() {
 ═══════════════════════════════════════════════════════ */
 function StatTicker() {
   const stats = [
-    "۸۵٪ مشاغل تا ۲۰۳۰ تغییر می‌کنن",
+    "۸۵٪ مشاغل تا ۲۰۳۰ تغییر می‌کنن — مجمع جهانی اقتصاد",
     "هر هفته ۱۲+ ابزار جدید AI منتشر می‌شه",
-    "۶۶٪ کارفرماها مهارت AI می‌خوان",
-    "کسایی که AI بلدن ۲× سریع‌تر کار می‌کنن",
-    "۴۴٪ از کارهای روزانه قابل خودکارسازیه",
+    "۶۶٪ کارفرماها مهارت AI می‌خوان — LinkedIn 2024",
+    "۴۴٪ از کارهای روزانه قابل خودکارسازیه — McKinsey",
     "بهترین وقت برای یادگیری: همین الانه",
   ];
   const dup = [...stats, ...stats];
@@ -276,33 +275,10 @@ function SocialProof() {
               border: "1px solid rgba(251,191,36,0.25)",
             }}
           >
-            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16 }}>
-              <div style={{
-                padding: "4px 10px", borderRadius: 999,
-                background: "rgba(251,191,36,0.18)", border: "1px solid rgba(251,191,36,0.35)",
-                fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: 1.5,
-                color: "#fcd34d", fontWeight: 700,
-              }}>
-                ۱۲٫۴ هزار کاربر فعال
-              </div>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#fcd34d", fontWeight: 700 }}>★ ۴٫۸</span>
-            </div>
             <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "#e8efea" }} dir="rtl">
               «توی یه هفته از صفر با Claude بریف نوشتم، با v0 لندینگ ساختم. ای‌وای منو از{" "}
               <strong style={{ color: "#fcd34d" }}>ترس AI</strong> دراورد.»
             </p>
-            <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }} dir="rtl">
-              <div style={{
-                width: 32, height: 32, borderRadius: "50%",
-                background: "linear-gradient(135deg, #fcd34d, #f59e0b)",
-                display: "grid", placeItems: "center",
-                fontWeight: 900, fontSize: 13, color: "#451a03",
-              }}>ن</div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 12.5, color: "#e8efea" }}>نگار رفیعی</div>
-                <div style={{ fontSize: 10.5, color: "rgba(232,239,234,0.5)" }}>طراح محصول · اسنپ</div>
-              </div>
-            </div>
           </div>
         </Reveal>
       </div>

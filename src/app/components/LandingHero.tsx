@@ -138,34 +138,7 @@ export default function LandingHero() {
           </Link>
         </div>
 
-        {/* Trust row */}
-        <div style={{
-          marginTop: 24, marginBottom: 80,
-          display: "flex", alignItems: "center", gap: 12,
-          opacity: 0.65,
-        }}>
-          <div style={{ display: "flex" }}>
-            {(["ع", "س", "م", "ن"] as const).map((c, i) => (
-              <div key={i} style={{
-                marginInlineStart: i ? -8 : 0,
-                width: 28, height: 28, borderRadius: "50%",
-                background: [
-                  "linear-gradient(135deg, #10b981, #047857)",
-                  "linear-gradient(135deg, #eab308, #ca8a04)",
-                  "linear-gradient(135deg, #0891b2, #155e75)",
-                  "linear-gradient(135deg, #8b5cf6, #5b21b6)",
-                ][i],
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 11, fontWeight: 800, color: "#04110a",
-              }}>
-                {c}
-              </div>
-            ))}
-          </div>
-          <span style={{ fontSize: 12, color: "rgba(232,239,234,0.7)" }}>
-            +۱۲٬۰۰۰ متخصص ایرانی
-          </span>
-        </div>
+        <div style={{ marginTop: 24, marginBottom: 80 }} />
       </div>
     </section>
   );
