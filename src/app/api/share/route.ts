@@ -7,10 +7,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 
+async function ensureSharedAnalysesTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shared_analyses (
+      id           SERIAL      PRIMARY KEY,
+      user_id      UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      analysis_id  UUID        NOT NULL REFERENCES analyses(id) ON DELETE CASCADE,
+      token        TEXT        UNIQUE NOT NULL,
+      view_count   INTEGER     DEFAULT 0,
+      created_at   TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).catch(() => {});
+}
+
 /* ── POST: create share link ─────────────────────────────────────── */
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+
+  await ensureSharedAnalysesTable();
 
   const body = await req.json().catch(() => ({}));
   const analysisId: string | undefined = body.analysisId;

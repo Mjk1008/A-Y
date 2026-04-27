@@ -9,6 +9,7 @@ import { getSession } from "@/lib/auth/session";
 
 /* ── Self-healing table creation ─────────────────────────────────── */
 async function ensureTables() {
+  // Split into separate queries — pg doesn't reliably run multi-statement DDL
   await pool.query(`
     CREATE TABLE IF NOT EXISTS referral_codes (
       id           SERIAL PRIMARY KEY,
@@ -17,14 +18,16 @@ async function ensureTables() {
       used_count   INT DEFAULT 0,
       reward_given INT DEFAULT 0,
       created_at   TIMESTAMPTZ DEFAULT NOW()
-    );
+    )
+  `).catch(() => {});
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS referral_uses (
       id          SERIAL PRIMARY KEY,
       referrer_id UUID REFERENCES users(id) ON DELETE CASCADE,
       referred_id UUID REFERENCES users(id) ON DELETE CASCADE,
       used_at     TIMESTAMPTZ DEFAULT NOW()
-    );
-  `).catch(() => {}); // ignore if already exists or FK constraint differs
+    )
+  `).catch(() => {});
 }
 
 /* ── GET: get (or generate) referral code ────────────────────────── */
