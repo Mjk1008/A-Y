@@ -204,8 +204,8 @@ function Problem() {
    JOURNEY — 3-step path
 ═══════════════════════════════════════════════════════ */
 const JOURNEY_STEPS = [
-  { n: "۰۱", title: "معرفی کن", desc: "شغل، صنعت، تجربه، چند تا مهارت. فقط ۳۰ ثانیه.", state: "wave" as const, meta: "~۳۰ ثانیه" },
-  { n: "۰۲", title: "تحلیل می‌شه", desc: "موتور ما ابزارهای AI مرتبط با شغلت رو فیلتر می‌کنه.", state: "sparkle" as const, meta: "~۴۵ ثانیه" },
+  { n: "۰۱", title: "معرفی کن", desc: "شغل، صنعت، تجربه، چند تا مهارت. ساده و سریع.", state: "wave" as const, meta: "~۳ دقیقه" },
+  { n: "۰۲", title: "تحلیل می‌شه", desc: "موتور ما ابزارهای AI مرتبط با شغلت رو فیلتر می‌کنه.", state: "sparkle" as const, meta: "~۳۰ ثانیه" },
   { n: "۰۳", title: "شروع کن", desc: "یه نقشه‌راه ۴ هفته‌ای، دوره‌های فارسی، شغل‌های پیشنهادی.", state: "bounce" as const, meta: "آماده!" },
 ];
 
@@ -624,7 +624,7 @@ function FinalCta() {
 function Footer() {
   return (
     <footer className="relative border-t border-white/[0.05] bg-ink-950/30 px-6 py-10 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-md flex-col items-center gap-5 text-center">
+      <div className="mx-auto flex max-w-md flex-col items-center gap-6 text-center">
         <Link href="/" className="flex items-center gap-2.5">
           <div
             className="flex items-center justify-center rounded-lg text-[13px] font-black"
@@ -642,12 +642,13 @@ function Footer() {
             <div className="font-mono text-[10px] tracking-[0.1em]" style={{ color: "rgba(110,231,183,0.6)" }}>A-Y / v۰.۹</div>
           </div>
         </Link>
-        <div className="flex items-center gap-4 text-[11px] text-ink-600">
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] text-ink-600">
           <Link href="/login" className="transition hover:text-ink-400">ورود</Link>
-          <span>·</span>
           <Link href="#pricing" className="transition hover:text-ink-400">پلن‌ها</Link>
-          <span>·</span>
           <Link href="#how" className="transition hover:text-ink-400">چطور کار می‌کنه</Link>
+          <Link href="/privacy" className="transition hover:text-ink-400">حریم خصوصی</Link>
+          <Link href="/terms" className="transition hover:text-ink-400">قوانین استفاده</Link>
+          <a href="mailto:support@a-y.app" className="transition hover:text-ink-400">پشتیبانی</a>
         </div>
         <p className="text-[11px] text-ink-700">
           ساخته‌شده برای کسایی که نمی‌خوان عقب بمونن · {new Date().getFullYear()}

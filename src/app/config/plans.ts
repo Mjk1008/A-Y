@@ -199,6 +199,7 @@ export function describeLimit(key: keyof PlanLimits, p: Plan): string {
       return `${fa(l.roadmapsPerMonth)} بار/ماه`;
     case "chatMessagesPerMonth":
       if (l.chatMessagesPerMonth === 0) return "—";
+      if (p.id === "free") return "۵ پیام/روز";
       return `${fa(l.chatMessagesPerMonth)} پیام/ماه`;
     case "matchedJobsVisible":
       if (l.matchedJobsVisible === -1) return "نامحدود";

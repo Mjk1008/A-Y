@@ -334,12 +334,15 @@ function ConversationSidebar({
 ══════════════════════════════════════════════════════════════════ */
 export function ChatClient({
   nickname, jobTitle, hasAnalysis, plan = "free",
+  initialGreeting, taskSuggestions,
 }: {
   nickname: string;
   jobTitle: string;
   industry: string;
   hasAnalysis: boolean;
   plan?: string;
+  initialGreeting?: string;
+  taskSuggestions?: string[];
 }) {
   const FREE_DAILY_LIMIT = 5;
   const [messages, setMessages]           = useState<Message[]>([]);
@@ -682,65 +685,110 @@ export function ChatClient({
 
               {/* ─── Empty state ─── */}
               {isEmpty && (
-                <div style={{
-                  display: "flex", flexDirection: "column",
-                  alignItems: "center", textAlign: "center",
-                  paddingTop: 24,
-                }}>
-                  {/* Avatar */}
-                  <div style={{
-                    width: 52, height: 52, borderRadius: 16,
-                    background: "rgba(16,185,129,0.1)", border: "1px solid rgba(110,231,183,0.2)",
-                    display: "grid", placeItems: "center",
-                    marginBottom: 16,
-                  }}>
-                    <span style={{ fontSize: 22, fontWeight: 900, color: "#6ee7b7" }}>A</span>
-                  </div>
+                <div style={{ paddingTop: 24 }}>
 
-                  <h2 style={{
-                    margin: "0 0 8px", fontWeight: 800, fontSize: 18,
-                    color: "#e8efea", letterSpacing: -0.4,
-                  }}>
-                    {mode === "free" ? "چه کمکی می‌تونم بکنم؟" : `سلام ${nickname}`}
-                  </h2>
-                  <p style={{
-                    margin: "0 0 24px", fontSize: 13, lineHeight: 1.7,
-                    color: "rgba(232,239,234,0.5)", maxWidth: 260,
-                  }}>
-                    {mode === "free"
-                      ? "هر سوال، متن یا کدی داری بپرس."
-                      : "هر سوال شغلی داری — درباره AI، مسیر، مهارت یا ابزار — بپرس."}
-                  </p>
+                  {/* ── Career mode: guided coaching greeting ── */}
+                  {mode === "career" && initialGreeting ? (
+                    <div style={{ maxWidth: 520, margin: "0 auto" }}>
 
-                  {mode === "career" && !hasAnalysis && (
+                      {/* AI greeting bubble */}
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <div style={{ paddingTop: 2, flexShrink: 0 }}>
+                          <AiDot />
+                        </div>
+                        <div
+                          className="ay-bubble-ai"
+                          style={{
+                            flex: 1,
+                            padding: "12px 16px",
+                            borderRadius: "5px 16px 16px 16px",
+                            fontSize: 14, lineHeight: 1.85, color: "#e8efea",
+                            background: "rgba(16,24,20,0.75)",
+                            border: "1px solid rgba(110,231,183,0.1)",
+                          }}
+                        >
+                          {renderMarkdown(initialGreeting)}
+                        </div>
+                      </div>
+
+                      {/* Task chips */}
+                      <div style={{ marginTop: 14, marginRight: 34, display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ fontSize: 10.5, color: "rgba(110,231,183,0.4)", marginBottom: 2 }}>
+                          مثلاً می‌تونی بگی:
+                        </div>
+                        {(taskSuggestions ?? suggestions).map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => sendMessage(s)}
+                            style={{
+                              padding: "9px 14px", borderRadius: 10, textAlign: "right",
+                              background: "rgba(16,185,129,0.05)",
+                              border: "1px solid rgba(110,231,183,0.12)",
+                              fontSize: 13, color: "rgba(232,239,234,0.75)",
+                              cursor: "pointer", fontFamily: "inherit",
+                              transition: "border-color 0.12s, background 0.12s",
+                              display: "flex", alignItems: "center", gap: 8,
+                            }}
+                          >
+                            <span style={{ color: "rgba(110,231,183,0.4)", fontSize: 10 }}>↩</span>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+
+                      {!hasAnalysis && (
+                        <div style={{
+                          marginTop: 20, marginRight: 34,
+                          padding: "8px 14px", borderRadius: 9,
+                          background: "rgba(234,179,8,0.07)", border: "1px solid rgba(251,191,36,0.18)",
+                          fontSize: 11.5, color: "#fcd34d", lineHeight: 1.6,
+                        }}>
+                          💡 اگه تحلیل مسیر شغلی انجام بدی، مثال‌ها شخصی‌تر می‌شن
+                        </div>
+                      )}
+                    </div>
+
+                  ) : (
+                    /* ── Free mode / fallback: classic centered empty state ── */
                     <div style={{
-                      marginBottom: 20, padding: "8px 14px", borderRadius: 9,
-                      background: "rgba(234,179,8,0.07)", border: "1px solid rgba(251,191,36,0.18)",
-                      fontSize: 11.5, color: "#fcd34d", lineHeight: 1.6,
+                      display: "flex", flexDirection: "column",
+                      alignItems: "center", textAlign: "center",
                     }}>
-                      💡 اول تحلیل مسیر شغلی رو انجام بده — پاسخ‌ها شخصی‌تر میشن
+                      <div style={{
+                        width: 52, height: 52, borderRadius: 16,
+                        background: "rgba(16,185,129,0.1)", border: "1px solid rgba(110,231,183,0.2)",
+                        display: "grid", placeItems: "center", marginBottom: 16,
+                      }}>
+                        <span style={{ fontSize: 22, fontWeight: 900, color: "#6ee7b7" }}>A</span>
+                      </div>
+
+                      <h2 style={{ margin: "0 0 8px", fontWeight: 800, fontSize: 18, color: "#e8efea", letterSpacing: -0.4 }}>
+                        چه کمکی می‌تونم بکنم؟
+                      </h2>
+                      <p style={{ margin: "0 0 24px", fontSize: 13, lineHeight: 1.7, color: "rgba(232,239,234,0.5)", maxWidth: 260 }}>
+                        هر سوال، متن یا کدی داری بپرس.
+                      </p>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", maxWidth: 340 }}>
+                        {suggestions.map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => sendMessage(s)}
+                            style={{
+                              padding: "9px 14px", borderRadius: 10, textAlign: "right",
+                              background: "rgba(255,255,255,0.03)",
+                              border: "1px solid rgba(110,231,183,0.09)",
+                              fontSize: 12.5, color: "rgba(232,239,234,0.7)",
+                              cursor: "pointer", fontFamily: "inherit",
+                              transition: "border-color 0.12s, background 0.12s",
+                            }}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
-
-                  {/* Suggestions */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", maxWidth: 340 }}>
-                    {suggestions.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => sendMessage(s)}
-                        style={{
-                          padding: "9px 14px", borderRadius: 10, textAlign: "right",
-                          background: "rgba(255,255,255,0.03)",
-                          border: "1px solid rgba(110,231,183,0.09)",
-                          fontSize: 12.5, color: "rgba(232,239,234,0.7)",
-                          cursor: "pointer", fontFamily: "inherit",
-                          transition: "border-color 0.12s, background 0.12s",
-                        }}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               )}
 
@@ -878,22 +926,34 @@ export function ChatClient({
             <div style={{
               marginBottom: 10, padding: "10px 14px", borderRadius: 12,
               background: "rgba(250,204,21,0.07)", border: "1px solid rgba(250,204,21,0.2)",
-              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+              display: "flex", flexDirection: "column", gap: 8,
             }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#fde68a" }}>
-                  سقف روزانه تموم شد
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#fde68a" }}>
+                    سقف روزانه تموم شد
+                  </div>
+                  <div style={{ fontSize: 10.5, color: "rgba(253,230,138,0.5)", marginTop: 2 }}>
+                    فردا ۵ پیام جدید — یا همین الان Pro بشو
+                  </div>
                 </div>
-                <div style={{ fontSize: 10.5, color: "rgba(253,230,138,0.5)", marginTop: 2 }}>
-                  فردا ۵ پیام جدید — یا همین الان Pro بشو
-                </div>
+                <a href="/billing" style={{
+                  padding: "6px 12px", borderRadius: 8, fontSize: 11.5, fontWeight: 700,
+                  background: "linear-gradient(135deg, #fde68a, #eab308)",
+                  color: "#2a1d03", textDecoration: "none", flexShrink: 0,
+                }}>
+                  ارتقا
+                </a>
               </div>
-              <a href="/billing" style={{
-                padding: "6px 12px", borderRadius: 8, fontSize: 11.5, fontWeight: 700,
-                background: "linear-gradient(135deg, #fde68a, #eab308)",
-                color: "#2a1d03", textDecoration: "none", flexShrink: 0,
+              <a href="/games" style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 10px", borderRadius: 8, textDecoration: "none",
+                background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.2)",
               }}>
-                ارتقا
+                <span style={{ fontSize: 14 }}>🐍</span>
+                <span style={{ fontSize: 11, color: "#6ee7b7", fontWeight: 600 }}>
+                  Snake بازی کن (امتیاز &gt; ۱۰) → +۱ پیام رایگان امروز
+                </span>
               </a>
             </div>
           )}

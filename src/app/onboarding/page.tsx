@@ -37,7 +37,7 @@ const INDUSTRIES = [
   "سایر",
 ];
 
-const STEP_LABELS = ["اطلاعات پایه", "مهارت‌ها", "رزومه"];
+const STEP_LABELS = ["اطلاعات شغلی", "مهارت‌ها", "رزومه"];
 const LOADING_STEPS = [
   "در حال ذخیره پروفایل...",
   "در حال خواندن رزومه...",
@@ -55,8 +55,6 @@ export default function OnboardingPage() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [form, setForm] = useState({
     nickname: "",
-    full_name: "",
-    age: "",
     job_title: "",
     industry: "",
     years_experience: "",
@@ -104,9 +102,7 @@ export default function OnboardingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nickname: form.nickname,
-          full_name: form.full_name,
-          age: form.age ? parseInt(form.age) : null,
+          nickname: form.nickname || null,
           job_title: form.job_title,
           industry: form.industry,
           years_experience: parseInt(form.years_experience || "0"),
@@ -131,7 +127,7 @@ export default function OnboardingPage() {
       setAnalyzeView("success");
       // auto-redirect after 2.5s if user doesn't click
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/dashboard/analysis");
         router.refresh();
       }, 2500);
     } catch (e: unknown) {
@@ -144,8 +140,8 @@ export default function OnboardingPage() {
   }
 
   const canNext1 =
-    form.full_name && form.age && form.job_title && form.industry;
-  const canNext2 = form.years_experience && form.skills.length >= 2;
+    form.job_title && form.industry && form.years_experience;
+  const canNext2 = form.skills.length >= 2;
 
   // ── Loader screen ──────────────────────────────────────────────────
   if (analyzeView === "loading") {
@@ -157,7 +153,7 @@ export default function OnboardingPage() {
     return (
       <SuccessScreen
         onContinue={() => {
-          router.push("/dashboard");
+          router.push("/dashboard/analysis");
           router.refresh();
         }}
       />
@@ -227,7 +223,7 @@ export default function OnboardingPage() {
 
         <p className="mt-8 text-[11px] text-ink-700">
           اگه مشکل ادامه داشت،{" "}
-          <a href="mailto:support@a-y.ir" className="text-emerald-500 underline">
+          <a href="mailto:support@a-y.app" className="text-emerald-500 underline">
             پشتیبانی
           </a>{" "}
           رو خبر کن
@@ -372,71 +368,16 @@ export default function OnboardingPage() {
             <div className="animate-fade-up space-y-6">
               <div>
                 <h2 className="mb-1 text-2xl font-black tracking-tight">
-                  {form.nickname}، تعریف کن خودتو
+                  {form.nickname ? `${form.nickname}، ` : ""}شغلت چیه؟
                 </h2>
                 <p className="text-sm text-ink-400">
-                  این اطلاعات پایه به ما کمک می‌کنه تحلیل دقیق‌تری بدیم.
+                  همین چند تا اطلاعات کافیه برای تحلیل دقیق.
                 </p>
               </div>
 
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-ink-400">
-                  نام و نام خانوادگی
-                </label>
-                <input
-                  value={form.full_name}
-                  onChange={(e) =>
-                    setForm({ ...form, full_name: e.target.value })
-                  }
-                  className="input-field"
-                  placeholder="مثلاً علی رضایی"
-                  autoComplete="name"
-                  autoFocus
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-ink-400">
-                    سن
-                  </label>
-                  <input
-                    type="number"
-                    min={15}
-                    max={80}
-                    value={form.age}
-                    onChange={(e) => setForm({ ...form, age: e.target.value })}
-                    className="input-field"
-                    placeholder="28"
-                    dir="ltr"
-                    autoComplete="off"
-                    inputMode="numeric"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-ink-400">
-                    سال‌های تجربه
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={60}
-                    value={form.years_experience}
-                    onChange={(e) =>
-                      setForm({ ...form, years_experience: e.target.value })
-                    }
-                    className="input-field"
-                    placeholder="5"
-                    dir="ltr"
-                    autoComplete="off"
-                    inputMode="numeric"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-ink-400">
-                  عنوان شغلی دقیق
+                  عنوان شغلی
                 </label>
                 <input
                   value={form.job_title}
@@ -446,6 +387,7 @@ export default function OnboardingPage() {
                   className="input-field"
                   placeholder="مثلاً توسعه‌دهنده Frontend یا مدیر محصول"
                   autoComplete="organization-title"
+                  autoFocus
                 />
               </div>
 
@@ -468,6 +410,26 @@ export default function OnboardingPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-ink-400">
+                  سال‌های تجربه
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={60}
+                  value={form.years_experience}
+                  onChange={(e) =>
+                    setForm({ ...form, years_experience: e.target.value })
+                  }
+                  className="input-field"
+                  placeholder="مثلاً ۵"
+                  dir="ltr"
+                  autoComplete="off"
+                  inputMode="numeric"
+                />
               </div>
             </div>
           )}

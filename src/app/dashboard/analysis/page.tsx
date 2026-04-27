@@ -44,6 +44,8 @@ export default async function AnalysisPage() {
 
   const r = latest.result_json as AnalysisResult;
   const roadmapProgress = progressRes.rows ?? [];
+  const plan = session.plan ?? "free";
+  const isFree = plan === "free";
 
   return (
     <div className="min-h-[100dvh] pb-28" style={{ background: "#020306", color: "#e8efea" }}>
@@ -59,7 +61,7 @@ export default async function AnalysisPage() {
         <div className="mx-auto flex max-w-md items-center gap-3 px-5 py-3.5">
           <Link
             href="/dashboard"
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-400 transition hover:text-ink-200"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-400 transition hover:text-ink-200"
           >
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -201,6 +203,29 @@ export default async function AnalysisPage() {
             ))}
           </div>
         </section>
+
+        {/* ── Upsell — Free users only ── */}
+        {isFree && (
+          <section className="mb-5 overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.10] to-transparent p-5">
+            <div className="mb-1 flex items-center gap-2">
+              <Zap className="h-4 w-4 text-emerald-400" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-400">پرو</span>
+            </div>
+            <h3 className="mb-1 text-[15px] font-black text-ink-50">
+              تحلیل عمیق‌تر — ۸ ابزار بیشتر
+            </h3>
+            <p className="mb-4 text-[12.5px] leading-relaxed text-ink-400">
+              با پلن پرو، ۸+ ابزار شخصی‌سازی‌شده، نقشه راه ماهانه، و ۲۰۰ پیام مسیریاب AI در ماه دریافت می‌کنی.
+            </p>
+            <Link
+              href="/billing/checkout"
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-[13px] font-bold text-black transition hover:bg-emerald-400"
+            >
+              <Zap className="h-3.5 w-3.5" />
+              ارتقا به پرو — ۲۹۸ هزار تومان/ماه
+            </Link>
+          </section>
+        )}
 
         {/* ── Roadmap ── */}
         {r.roadmap && r.roadmap.length > 0 && (

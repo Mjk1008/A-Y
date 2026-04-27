@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Sparkles, X, Check, Zap } from "lucide-react";
+import { AnalysisLoading, SuccessScreen } from "@/app/components/LoadingStates";
 
 type Profile = {
   full_name: string;
@@ -29,6 +30,7 @@ export function ProfileClient({ initial }: { initial: Profile }) {
   });
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeView, setAnalyzeView] = useState<"form" | "loading" | "success">("form");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
@@ -72,6 +74,7 @@ export function ProfileClient({ initial }: { initial: Profile }) {
 
   async function reanalyze() {
     setAnalyzing(true);
+    setAnalyzeView("loading");
     setError(null);
     setQuotaExceeded(false);
     try {
@@ -92,6 +95,7 @@ export function ProfileClient({ initial }: { initial: Profile }) {
 
       const r = await fetch("/api/analyze", { method: "POST" });
       if (r.status === 429) {
+        setAnalyzeView("form");
         setQuotaExceeded(true);
         return;
       }
@@ -99,13 +103,24 @@ export function ProfileClient({ initial }: { initial: Profile }) {
         const j = await r.json().catch(() => ({}));
         throw new Error(j.error || "خطا در تحلیل");
       }
-      router.push("/dashboard");
-      router.refresh();
+      setAnalyzeView("success");
+      setTimeout(() => {
+        router.push("/dashboard/analysis");
+        router.refresh();
+      }, 2500);
     } catch (e: unknown) {
+      setAnalyzeView("form");
       setError(e instanceof Error ? e.message : "خطا");
     } finally {
       setAnalyzing(false);
     }
+  }
+
+  if (analyzeView === "loading") return <AnalysisLoading />;
+  if (analyzeView === "success") {
+    return (
+      <SuccessScreen onContinue={() => { router.push("/dashboard/analysis"); router.refresh(); }} />
+    );
   }
 
   return (

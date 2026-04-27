@@ -11,11 +11,12 @@ export default async function JobsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const profileRes = await pool.query(
-    "SELECT skills FROM profiles WHERE user_id=$1",
-    [session.id]
-  );
+  const [profileRes, countRes] = await Promise.all([
+    pool.query("SELECT skills FROM profiles WHERE user_id=$1", [session.id]),
+    pool.query("SELECT COUNT(*) FROM crawled_jobs WHERE crawled_at >= NOW() - INTERVAL '7 days'").catch(() => ({ rows: [{ count: "0" }] })),
+  ]);
   const userSkills: string[] = profileRes.rows[0]?.skills ?? [];
+  const jobCount = parseInt(countRes.rows[0]?.count ?? "0", 10);
 
   return (
     <div className="min-h-[100dvh] pb-28" style={{ background: "#020306", color: "#e8efea" }}>
@@ -44,7 +45,7 @@ export default async function JobsPage() {
       </header>
 
       <BottomNav />
-      <JobsMascotBanner matchCount={34} />
+      <JobsMascotBanner matchCount={jobCount} />
       <MatchedJobs limit={20} userSkills={userSkills} />
     </div>
   );

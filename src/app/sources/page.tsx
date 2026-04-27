@@ -39,14 +39,6 @@ const RESOURCES: Resource[] = [
     tags: ["خبر", "هفتگی"],
   },
   {
-    id: 3,
-    name: "پادکست چه خبر AI",
-    description: "گفتگو با متخصصان ایرانی AI در مورد آینده کار و فناوری",
-    url: "https://pod.cast/ai",
-    type: "podcast", lang: "fa", free: true, stars: 4,
-    tags: ["مصاحبه", "آینده کار"],
-  },
-  {
     id: 4,
     name: "ویرگول AI",
     description: "مقالات فارسی عمیق درباره ML، LLM، و ابزارهای AI از نویسندگان ایرانی",

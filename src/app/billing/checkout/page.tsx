@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Crown, Zap, Check, Loader2, Tag } from "lucide-react";
+import { ArrowLeft, Crown, Zap, Check, Loader2, Tag, User } from "lucide-react";
 
 const PLANS = [
   {
@@ -12,7 +12,7 @@ const PLANS = [
     price: 298_000,
     cycle: "monthly",
     cycleLabel: "ماهانه",
-    features: ["۵ تحلیل در هفته", "مسیریاب AI نامحدود", "۲۰ شغل روزانه", "پشتیبانی سریع"],
+    features: ["۵ تحلیل در هفته", "مسیریاب AI — ۲۰۰ پیام/ماه", "۲۰ شغل روزانه", "پشتیبانی سریع"],
     accent: "emerald",
     icon: Zap,
   },
@@ -36,6 +36,7 @@ function CheckoutContent() {
   const defaultPlan = params.get("plan") || "pro";
 
   const [selected, setSelected] = useState(defaultPlan);
+  const [fullName, setFullName] = useState("");
   const [promo, setPromo] = useState("");
   const [promoApplied, setPromoApplied] = useState(false);
   const [discount, setDiscount] = useState(0);
@@ -55,9 +56,20 @@ function CheckoutContent() {
   }
 
   async function handleCheckout() {
+    if (!fullName.trim()) {
+      setError("لطفاً نام و نام خانوادگی رو وارد کن");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
+      // Save full name before redirecting to payment gateway
+      await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ full_name: fullName.trim() }),
+      });
+
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -174,6 +186,26 @@ function CheckoutContent() {
           )}
         </div>
 
+        {/* Buyer info */}
+        <div className="glass rounded-2xl p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-ink-300 mb-3">
+            <User className="h-4 w-4" /> اطلاعات خریدار
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-ink-500">
+              نام و نام خانوادگی <span className="text-red-400">*</span>
+            </label>
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="مثلاً علی رضایی"
+              className="input-field w-full"
+              autoComplete="name"
+              dir="rtl"
+            />
+          </div>
+        </div>
+
         {/* Summary + pay */}
         <div className="glass rounded-2xl p-5">
           <div className="space-y-2 text-sm">
@@ -201,7 +233,7 @@ function CheckoutContent() {
 
           <button
             onClick={handleCheckout}
-            disabled={loading}
+            disabled={loading || !fullName.trim()}
             className="btn-lux mt-4 w-full justify-center"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>

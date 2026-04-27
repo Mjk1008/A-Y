@@ -163,7 +163,7 @@ export default function LandingHero() {
             ))}
           </div>
           <span style={{ fontSize: 12, color: "rgba(232,239,234,0.7)" }}>
-            +۲٬۴۰۰ متخصص ایرانی
+            +۱۲٬۰۰۰ متخصص ایرانی
           </span>
         </div>
       </div>

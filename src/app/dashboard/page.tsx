@@ -20,6 +20,7 @@ import {
   Gamepad2,
   Shield,
   Flame,
+  BookOpen,
 } from "lucide-react";
 import { DashboardClient } from "./DashboardClient";
 import { BottomNav } from "@/app/components/BottomNav";
@@ -193,7 +194,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* ── Streak Card ── */}
-        {streakData.currentStreak > 0 && (
+        {streakData.currentStreak > 0 ? (
           <div className="mb-5 flex items-center gap-3 rounded-2xl border border-orange-500/25 bg-gradient-to-r from-orange-500/[0.10] to-amber-500/[0.06] px-4 py-3.5">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-2xl">
               🔥
@@ -212,6 +213,16 @@ export default async function DashboardPage() {
               </p>
             </div>
             <Flame className="h-5 w-5 text-orange-400 shrink-0" />
+          </div>
+        ) : (
+          <div className="mb-5 flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-xl">
+              🔥
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-semibold text-ink-300">هر روز یه قدم — streak بساز</p>
+              <p className="text-[10.5px] text-ink-600">وقتی روزانه وارد بشی یا تسک انجام بدی</p>
+            </div>
           </div>
         )}
 
@@ -389,6 +400,21 @@ export default async function DashboardPage() {
           />
         </div>
 
+        {/* ── Sources Strip ── */}
+        <Link
+          href="/sources"
+          className="group mt-3 flex items-center gap-3 overflow-hidden rounded-2xl border border-cyan-500/15 bg-gradient-to-l from-cyan-500/[0.06] to-transparent px-4 py-3 transition hover:-translate-y-0.5 hover:border-cyan-500/25"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12">
+            <BookOpen className="h-4 w-4 text-cyan-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12.5px] font-bold text-ink-200">منابع یادگیری AI</p>
+            <p className="text-[11px] text-ink-600">۱۱ ویدئو، پادکست و خبرنامه کیوریت‌شده</p>
+          </div>
+          <ChevronLeft className="h-4 w-4 text-cyan-500/50 transition-transform group-hover:-translate-x-0.5" />
+        </Link>
+
         {/* ── Referral Card ── */}
         <div className="mt-3 flex items-center gap-4 overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-l from-violet-500/[0.07] to-transparent p-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-2xl">
@@ -449,7 +475,7 @@ export default async function DashboardPage() {
               >
                 پلن پرو
               </Link>
-              {" "}— ۵ تحلیل هفتگی + چت نامحدود
+              {" "}— ۵ تحلیل هفتگی + ۲۰۰ پیام چت/ماه
             </p>
           )}
         </div>
@@ -620,19 +646,19 @@ function DashboardHeader({
           {/* Settings (billing accessible from within) */}
           <Link
             href="/settings"
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:border-white/[0.14] hover:text-ink-200"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:border-white/[0.14] hover:text-ink-200"
             title="تنظیمات"
           >
-            <Settings className="h-3.5 w-3.5" />
+            <Settings className="h-4 w-4" />
           </Link>
 
           {/* Profile */}
           <Link
             href="/profile"
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:border-white/[0.14] hover:text-ink-200"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-ink-500 transition hover:border-white/[0.14] hover:text-ink-200"
             title="پروفایل"
           >
-            <User className="h-3.5 w-3.5" />
+            <User className="h-4 w-4" />
           </Link>
 
           <DashboardClient />

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check } from "lucide-react";
+import { Check, ChevronLeft } from "lucide-react";
+import Link from "next/link";
 
 interface RoadmapWeek {
   week: string;
@@ -68,6 +69,11 @@ export function RoadmapSection({ analysisId, roadmap, initialProgress }: Props) 
     return total === 0 ? 0 : Math.round((done / total) * 100);
   }
 
+  // Find first week with incomplete goals = current active week
+  const activeWeekIdx = roadmap.findIndex((w, wi) =>
+    w.goals.some((_, gi) => !progress.get(`${wi}-${gi}-goal`))
+  );
+
   return (
     <section className="mb-6">
       <div className="mb-4">
@@ -80,12 +86,15 @@ export function RoadmapSection({ analysisId, roadmap, initialProgress }: Props) 
         {roadmap.map((w, weekIdx) => {
           const pct = weekPct(weekIdx, w.goals.length);
           const allDone = pct === 100;
+          const isActive = weekIdx === activeWeekIdx;
           return (
             <div
               key={weekIdx}
               className={`rounded-2xl border p-5 transition-colors ${
                 allDone
                   ? "border-emerald-500/30 bg-emerald-500/5"
+                  : isActive
+                  ? "border-emerald-500/20 bg-emerald-500/[0.03]"
                   : "border-white/[0.06] bg-white/[0.025]"
               }`}
             >
@@ -146,6 +155,17 @@ export function RoadmapSection({ analysisId, roadmap, initialProgress }: Props) 
                   );
                 })}
               </ul>
+
+              {/* Link to weekly detail — only for active week */}
+              {isActive && (
+                <Link
+                  href="/dashboard/week"
+                  className="mt-4 flex items-center gap-1 text-[11.5px] font-semibold text-emerald-400 transition hover:text-emerald-300"
+                >
+                  برنامه روزانه این هفته
+                  <ChevronLeft className="h-3 w-3" />
+                </Link>
+              )}
             </div>
           );
         })}
